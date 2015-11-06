@@ -1,0 +1,99 @@
+mainmodule genet {
+  readonly std::string filebase;
+  readonly std::string filemod;
+  readonly idx_t npdat;
+  readonly idx_t npnet;
+  readonly idx_t rngseed;
+  
+  initnode void registerNetDist(void);
+
+  message mModel {
+    idx_t type[];
+    idx_t xmodname[];
+    char modname[];
+    idx_t xrngtype[];
+    idx_t rngtype[];
+    real_t rngparam[];
+    idx_t nmodel;
+    idx_t nrngparam;
+  };
+  
+  message mGraph {
+    idx_t vtxmodidx[];
+    idx_t vtxorder[];
+    idx_t vtxshape[];
+    idx_t xvtxparam[];
+    real_t vtxparam[];
+    idx_t edgsource[];
+    idx_t xedgtarget[];
+    idx_t edgtarget[];
+    idx_t edgmodidx[];
+    real_t edgcutoff[];
+    idx_t xedgconntype[];
+    idx_t edgconntype[];
+    idx_t medgconnparam[];
+    real_t edgconnparam[];
+    idx_t nvtx;
+    idx_t nvtxparam;
+    idx_t nedg;
+    idx_t nedgtarget;
+    idx_t nedgconntype;
+    idx_t nedgconnparam;
+  };
+
+  message mConn {
+    idx_t vtxmodidx[];
+    real_t xyz[];
+    idx_t xadj[];
+    idx_t adjcy[];
+    idx_t edgmodidx[];
+    idx_t datidx;
+    idx_t nvtx;
+  };
+  
+  message mMetis {
+    idx_t vtxdist[];
+    idx_t edgdist[];
+  };
+
+  message mPart {
+    idx_t vtxidx[];
+    idx_t vtxmodidx[];
+    real_t xyz[];
+    idx_t xadj[];
+    idx_t adjcy[];
+    idx_t edgmodidx[];
+    real_t state[];
+    idx_t datidx;
+    idx_t prtidx;
+    idx_t nvtx;
+    idx_t nstate;
+  };
+
+  message mOrder {
+    idx_t vtxidxold[];
+    idx_t vtxidxnew[];
+    idx_t datidx;
+    idx_t nvtx;
+  };
+
+  mainchare Main {
+    entry Main(CkArgMsg *msg);
+
+    entry [reductiontarget] void Control();
+    entry [reductiontarget] void Halt(CkReductionMsg *msg);
+  };
+
+  array [1D] GeNet {
+    entry GeNet(mModel *msg);
+
+    entry void Build(mGraph *msg);
+    entry void Read(mMetis *msg);
+    entry void Connect(mConn *msg);
+    entry void ConnRequest(idx_t reqidx);
+    entry void ScatterPart();
+    entry void GatherPart(mPart *msg);
+    entry void Reorder(mOrder *msg);
+    entry void Write();
+  };
+};
