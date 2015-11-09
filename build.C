@@ -182,6 +182,7 @@ void GeNet::Build(mGraph *msg) {
 
   // Build vertices from model
   state.resize(norderdat);
+  stick.resize(norderdat);
   for (idx_t i = 0; i < norderdat; ++i) {
     // Sanity check
     // 0 is reserved for 'none' edge type
@@ -190,29 +191,52 @@ void GeNet::Build(mGraph *msg) {
     CkAssert(models[modidx].type == GRAPHTYPE_VTX);
     // Allocate space for states
     std::vector<real_t> rngstate;
-    rngstate.resize(models[modidx].rngtype.size());
+    std::vector<tick_t> rngstick;
+    rngstate.resize(models[modidx].statetype.size());
+    rngstick.resize(models[modidx].sticktype.size());
     // Randomly generate state
-    for (idx_t j = 0; j < rngstate.size(); ++j) {
-      if (models[modidx].rngtype[j] == RNGTYPE_CONST) {
-        rngstate[j] = rngconst(models[modidx].rngparam[j].data());
+    for (idx_t s = 0; s < models[modidx].statetype.size(); ++s) {
+      if (models[modidx].statetype[s] == RNGTYPE_CONST) {
+        rngstate[s] = rngconst(models[modidx].stateparam[s].data());
       }
-      else if (models[modidx].rngtype[j] == RNGTYPE_UNIF) {
-        rngstate[j] = rngunif(models[modidx].rngparam[j].data());
+      else if (models[modidx].statetype[s] == RNGTYPE_UNIF) {
+        rngstate[s] = rngunif(models[modidx].stateparam[s].data());
       }
-      else if (models[modidx].rngtype[j] == RNGTYPE_NORM) {
-        rngstate[j] = rngnorm(models[modidx].rngparam[j].data());
+      else if (models[modidx].statetype[s] == RNGTYPE_NORM) {
+        rngstate[s] = rngnorm(models[modidx].stateparam[s].data());
       }
-      else if (models[modidx].rngtype[j] == RNGTYPE_BNORM) {
-        rngstate[j] = rngbnorm(models[modidx].rngparam[j].data());
+      else if (models[modidx].statetype[s] == RNGTYPE_BNORM) {
+        rngstate[s] = rngbnorm(models[modidx].stateparam[s].data());
       }
       else {
-        CkPrintf("  error: rngtype %s is not valid for vertex\n", rngtype[models[modidx].rngtype[j]].c_str());
+        CkPrintf("  error: statetype %s is not valid for vertex\n", rngtype[models[modidx].statetype[s]].c_str());
+        // TODO: cleaner error checking here?
+        CkExit();
+      }
+    }
+    // Randomly generate stick
+    for (idx_t s = 0; s < models[modidx].sticktype.size(); ++s) {
+      if (models[modidx].sticktype[s] == RNGTYPE_CONST) {
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngconst(models[modidx].stickparam[s].data()));
+      }
+      else if (models[modidx].sticktype[s] == RNGTYPE_UNIF) {
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngunif(models[modidx].stickparam[s].data()));
+      }
+      else if (models[modidx].sticktype[s] == RNGTYPE_NORM) {
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngnorm(models[modidx].stickparam[s].data()));
+      }
+      else if (models[modidx].sticktype[s] == RNGTYPE_BNORM) {
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngbnorm(models[modidx].stickparam[s].data()));
+      }
+      else {
+        CkPrintf("  error: statetype %s is not valid for vertex\n", rngtype[models[modidx].sticktype[s]].c_str());
         // TODO: cleaner error checking here?
         CkExit();
       }
     }
     // Add to state
     state[i].push_back(rngstate);
+    stick[i].push_back(rngstick);
   }
 
   // Prepare for connection
@@ -290,10 +314,12 @@ void GeNet::Connect(mConn *msg) {
                                 (xyz[i*3+1]-msg->xyz[j*3+1])*(xyz[i*3+1]-msg->xyz[j*3+1])+
                                 (xyz[i*3+2]-msg->xyz[j*3+2])*(xyz[i*3+2]-msg->xyz[j*3+2]));              
               state[i].push_back(BuildEdgState(modidx, distance));
+              stick[i].push_back(BuildEdgStick(modidx, distance));
             }
             else {
               // build empty state
               state[i].push_back(std::vector<real_t>());
+              stick[i].push_back(std::vector<tick_t>());
             }
           }
           ++jadjcy[j];
@@ -331,10 +357,12 @@ void GeNet::Connect(mConn *msg) {
                                   (xyz[i*3+2]-xyz[j*3+2])*(xyz[i*3+2]-xyz[j*3+2]));
                   // build state from j to i
                   state[i].push_back(BuildEdgState(modidx, distance));
+                  stick[i].push_back(BuildEdgStick(modidx, distance));
                 }
                 else {
                   // build empty state
                   state[i].push_back(std::vector<real_t>());
+                  stick[i].push_back(std::vector<tick_t>());
                 }
               }
               ++jadjcy[ji];
@@ -373,10 +401,12 @@ void GeNet::Connect(mConn *msg) {
             if (modidx) {
               // build state from j to i
               state[i].push_back(BuildEdgState(modidx, distance));
+              stick[i].push_back(BuildEdgStick(modidx, distance));
             }
             else {
               // build empty state
               state[i].push_back(std::vector<real_t>());
+              stick[i].push_back(std::vector<tick_t>());
             }
           }
         }
@@ -419,10 +449,12 @@ void GeNet::Connect(mConn *msg) {
           if (modidx) {
             // build state from j to i
             state[i].push_back(BuildEdgState(modidx, distance));
+            stick[i].push_back(BuildEdgStick(modidx, distance));
           }
           else {
             // build empty state
             state[i].push_back(std::vector<real_t>());
+            stick[i].push_back(std::vector<tick_t>());
           }
         }
       }
@@ -639,6 +671,8 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, real_t dist) {
 * Edge State Building
 **************************************************************************/
 
+// States
+//
 std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
   // Sanity check
   // 0 is reserved for 'none' edge type
@@ -647,36 +681,80 @@ std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
   CkAssert(models[modidx].type == GRAPHTYPE_EDG);
   // Allocate space for states
   std::vector<real_t> rngstate;
-  rngstate.resize(models[modidx].rngtype.size());
+  rngstate.resize(models[modidx].statetype.size());
   // Randomly generate state
   for (idx_t j = 0; j < rngstate.size(); ++j) {
-    if (models[modidx].rngtype[j] == RNGTYPE_CONST) {
-      rngstate[j] = rngconst(models[modidx].rngparam[j].data());
+    if (models[modidx].statetype[j] == RNGTYPE_CONST) {
+      rngstate[j] = rngconst(models[modidx].stateparam[j].data());
     }
-    else if (models[modidx].rngtype[j] == RNGTYPE_UNIF) {
-      rngstate[j] = rngunif(models[modidx].rngparam[j].data());
+    else if (models[modidx].statetype[j] == RNGTYPE_UNIF) {
+      rngstate[j] = rngunif(models[modidx].stateparam[j].data());
     }
-    else if (models[modidx].rngtype[j] == RNGTYPE_NORM) {
-      rngstate[j] = rngnorm(models[modidx].rngparam[j].data());
+    else if (models[modidx].statetype[j] == RNGTYPE_NORM) {
+      rngstate[j] = rngnorm(models[modidx].stateparam[j].data());
     }
-    else if (models[modidx].rngtype[j] == RNGTYPE_BNORM) {
-      rngstate[j] = rngbnorm(models[modidx].rngparam[j].data());
+    else if (models[modidx].statetype[j] == RNGTYPE_BNORM) {
+      rngstate[j] = rngbnorm(models[modidx].stateparam[j].data());
     }
-    else if (models[modidx].rngtype[j] == RNGTYPE_LIN) {
-      rngstate[j] = rnglin(models[modidx].rngparam[j].data(), dist);
+    else if (models[modidx].statetype[j] == RNGTYPE_LIN) {
+      rngstate[j] = rnglin(models[modidx].stateparam[j].data(), dist);
     }
-    else if (models[modidx].rngtype[j] == RNGTYPE_LBLIN) {
-      rngstate[j] = rnglblin(models[modidx].rngparam[j].data(), dist);
+    else if (models[modidx].statetype[j] == RNGTYPE_LBLIN) {
+      rngstate[j] = rnglblin(models[modidx].stateparam[j].data(), dist);
     }
-    else if (models[modidx].rngtype[j] == RNGTYPE_BLIN) {
-      rngstate[j] = rngblin(models[modidx].rngparam[j].data(), dist);
+    else if (models[modidx].statetype[j] == RNGTYPE_BLIN) {
+      rngstate[j] = rngblin(models[modidx].stateparam[j].data(), dist);
     }
     else {
-      CkPrintf("  error: rngtype %s is not valid for edge\n", rngtype[models[modidx].rngtype[j]].c_str());
+      CkPrintf("  error: statetype %s is not valid for edge\n", rngtype[models[modidx].statetype[j]].c_str());
       // TODO: cleaner error checking here?
       CkExit();
     }
   }
   // return generated state
   return rngstate;
+}
+
+// Sticks
+//
+std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist) {
+  // Sanity check
+  // 0 is reserved for 'none' edge type
+  CkAssert(modidx > 0);
+  --modidx;
+  CkAssert(models[modidx].type == GRAPHTYPE_EDG);
+  // Allocate space for sticks
+  std::vector<tick_t> rngstick;
+  rngstick.resize(models[modidx].sticktype.size());
+  // Randomly generate stick
+  for (idx_t j = 0; j < rngstick.size(); ++j) {
+    if (models[modidx].sticktype[j] == RNGTYPE_CONST) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngconst(models[modidx].stickparam[j].data()));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_UNIF) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngunif(models[modidx].stickparam[j].data()));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_NORM) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngnorm(models[modidx].stickparam[j].data()));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_BNORM) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngbnorm(models[modidx].stickparam[j].data()));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_LIN) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rnglin(models[modidx].stickparam[j].data(), dist));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_LBLIN) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rnglblin(models[modidx].stickparam[j].data(), dist));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_BLIN) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngblin(models[modidx].stickparam[j].data(), dist));
+    }
+    else {
+      CkPrintf("  error: statetype %s is not valid for edge\n", rngtype[models[modidx].sticktype[j]].c_str());
+      // TODO: cleaner error checking here?
+      CkExit();
+    }
+  }
+  // return generated stick
+  return rngstick;
 }

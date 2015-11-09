@@ -30,6 +30,8 @@
 #define GRAPHTYPE_EDG   1
 
 #define RNGTYPE_NRNG    8
+#define REPTYPE_REAL    0
+#define REPTYPE_TICK    1
 
 #define RNGTYPE_CONST   0
 #define RNGTYPE_UNIF    1
@@ -73,23 +75,27 @@ CkReductionMsg *netDist(int nMsg, CkReductionMsg **msgs);
 
 // Model Information
 //
-#define MSG_Model 6
+#define MSG_Model 9
 class mModel : public CMessage_mModel {
   public:
-    idx_t *type;      // type of model (vertex/edge)
-    idx_t *xmodname;  // model name prefix
-    char *modname;    // model name
-    idx_t *xrngtype;  // state generation prefix
-    idx_t *rngtype;   // state generation type
-    real_t *rngparam; // state generation parameters
+    idx_t *type;        // type of model (vertex/edge)
+    idx_t *xmodname;    // model name prefix
+    char *modname;      // model name
+    idx_t *xstatetype;    // state generation prefix
+    idx_t *xsticktype;    // stick generation prefix
+    idx_t *statetype;     // state generation type
+    idx_t *sticktype;     // stick representation type
+    real_t *stateparam;   // state generation parameters
+    real_t *stickparam;   // stick generation parameters
     idx_t nmodel;
-    idx_t nrngparam;
+    idx_t nstateparam;
+    idx_t nstickparam;
 };
 
 #define MSG_Graph 14
 class mGraph : public CMessage_mGraph {
   public:
-    idx_t *vtxmodidx;        // Which vertex to build (modidx from modmap)
+    idx_t *vtxmodidx;     // Which vertex to build (modidx from modmap)
     idx_t *vtxorder;      // How many of each vertex to build
     idx_t *vtxshape;      // What shape to build vertices
     idx_t *xvtxparam;     // shape parameters prefix
@@ -97,7 +103,7 @@ class mGraph : public CMessage_mGraph {
     idx_t *edgsource;     // source modidx of edge
     idx_t *xedgtarget;    // target prefix
     idx_t *edgtarget;     // target modidx of edge
-    idx_t *edgmodidx;        // modidx of edge
+    idx_t *edgmodidx;     // modidx of edge
     real_t *edgcutoff;    // cutoff distance of connection
     idx_t *xedgconntype;  // connection type prefix
     idx_t *edgconntype;   // connection type (computes probability threshold)
@@ -114,11 +120,11 @@ class mGraph : public CMessage_mGraph {
 #define MSG_Conn 5
 class mConn : public CMessage_mConn {
   public:
-    idx_t *vtxmodidx;
-    real_t *xyz;
-    idx_t *xadj;
-    idx_t *adjcy;
-    idx_t *edgmodidx;
+    idx_t *vtxmodidx;   // vertex model
+    real_t *xyz;        // vertex coordinates
+    idx_t *xadj;        // prefix for adjacency
+    idx_t *adjcy;       // adjacent vertices
+    idx_t *edgmodidx;   // edge models
     idx_t datidx;
     idx_t nvtx;
 };
@@ -130,7 +136,7 @@ class mMetis : public CMessage_mMetis {
     idx_t *edgdist; // number of edges in data
 };
   
-#define MSG_Part 7
+#define MSG_Part 8
 class mPart : public CMessage_mPart {
   public:
     idx_t *vtxidx;
@@ -140,10 +146,12 @@ class mPart : public CMessage_mPart {
     idx_t *adjcy;
     idx_t *edgmodidx;
     real_t *state;
+    tick_t *stick;
     idx_t datidx;
     idx_t prtidx;
     idx_t nvtx;
     idx_t nstate;
+    idx_t nstick;
 };
   
 #define MSG_Order 2
@@ -166,8 +174,10 @@ class mOrder : public CMessage_mOrder {
 struct model_t {
   idx_t type;
   std::string modname;
-  std::vector<idx_t> rngtype;
-  std::vector<std::vector<real_t>> rngparam;
+  std::vector<idx_t> statetype;
+  std::vector<std::vector<real_t>> stateparam;
+  std::vector<idx_t> sticktype;
+  std::vector<std::vector<real_t>> stickparam;
 };
 
 // Vertices
@@ -179,6 +189,8 @@ struct vertex_t {
   std::vector<real_t> param;
 };
 
+// Edges
+//
 struct edge_t {
   idx_t source;
   std::vector<idx_t> target;
@@ -219,8 +231,7 @@ struct edgorder_t {
   idx_t edgidx;
   idx_t modidx;
   std::vector<real_t> state;
-  //real_t state;
-  //idx_t nstate;
+  std::vector<tick_t> stick;
   bool operator < (const edgorder_t& edg) const {
     return (edgidx < edg.edgidx);
   }
@@ -270,9 +281,9 @@ class Main : public CBase_Main {
     /* Bookkeeping */
     std::string mode;
     bool buildflag;
-    bool writeflag;
     bool metisflag;
     bool orderflag;
+    bool writeflag;
 };
 
 
@@ -310,6 +321,7 @@ class GeNet : public CBase_GeNet {
     mConn* BuildNextConn();
     idx_t MakeConnection(idx_t source, idx_t target, real_t dist);
     std::vector<real_t> BuildEdgState(idx_t modidx, real_t dist);
+    std::vector<tick_t> BuildEdgStick(idx_t modidx, real_t dist);
 
     /* Helper Functions */
     idx_t strtomodidx(const char* nptr, char** endptr) {
@@ -424,6 +436,7 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<std::vector<idx_t>>> edgmodidxpart; // edge models to go to a part
     std::vector<std::vector<std::vector<real_t>>> statepart;
         // first level is the part, second is the models, thrid is state data
+    std::vector<std::vector<std::vector<tick_t>>> stickpart;
     /* Reordering */
     std::vector<std::vector<vtxorder_t>> vtxorder; // modidx and vtxidx for sorting
     std::vector<edgorder_t> edgorder; // edgidx and states for sorting
@@ -431,6 +444,7 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<std::vector<idx_t>>> adjcyorder; // adjacency by vertex
     std::vector<std::vector<std::vector<idx_t>>> edgmodidxorder; // edge models by vertex
     std::vector<std::vector<std::vector<std::vector<real_t>>>> stateorder; // state by vertex
+    std::vector<std::vector<std::vector<std::vector<tick_t>>>> stickorder; // stick by vertex
     /* Bookkeeping */
     idx_t datidx;
     idx_t cpdat;

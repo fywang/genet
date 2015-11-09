@@ -28,7 +28,7 @@ $(OUT): $(DECL) $(DEF) $(OBJ)
 	$(CHARMC) $(CFLAGS) $(CHARMFLAGS) $(OBJ) $(LDLIB) -o $(OUT)
 
 $(PART): $(SRC_CPP)
-	$(MPICXX) $(CFLAGS) $(SRC_CPP) $(LDLIB) $(METISLDLIB) -o $(PART)
+	$(MPICXX) $(CFLAGS) $(SRC_CPP) $(INC) $(LIB) $(LDLIB) $(METISLDLIB) -o $(PART)
 
 projections: $(DECL) $(DEF) $(OBJ)
 	$(CHARMC) $(CFLAGS) $(PROJFLAGS) $(CHARMFLAGS) $(OBJ) $(LDLIB) -o $(OUT)
@@ -49,11 +49,10 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 ifeq ($(UNAME_S),Linux)
+  LIB += -std=c++11
   # GCC version
   GCC11 := $(shell expr `gcc -dumpversion | cut -f1-2 -d.` \>= 4.8)
   ifeq ($(GCC11),1)
-    LIB += -std=c++11
   else
-    LIB += -std=c++0x
   endif
 endif

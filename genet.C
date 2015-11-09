@@ -34,7 +34,7 @@ Main::Main(CkArgMsg* msg) {
   }
   else if (msg->argc == 2) {
     mode = msg->argv[1];
-    if (mode != "part" && mode != "build") {
+    if (mode != "build" && mode != "order") {
       configfile = msg->argv[1];
       mode = std::string("build");
     }
@@ -45,9 +45,9 @@ Main::Main(CkArgMsg* msg) {
   else if (msg->argc == 3) {
     configfile = msg->argv[1];
     mode = msg->argv[2];
-    if (mode != "part" && mode != "build") {
+    if (mode != "build" && mode != "order") {
       CkPrintf("Error: mode %s not valid\n"
-               "       valid modes: build, part\n", mode.c_str());
+               "       valid modes: build, order\n", mode.c_str());
       CkExit();
     }
   }
@@ -86,21 +86,21 @@ Main::Main(CkArgMsg* msg) {
   
   // Print out model information
   for (idx_t i = 0; i < models.size(); ++i) {
-    CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d\n",
-        i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].rngtype.size());
+    CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
+        i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
   }
 
   // Set up control flags
-    buildflag = false;
-    metisflag = false;
-    orderflag = false;
-    writeflag = true;
-  if (mode == "build") {
     buildflag = true;
-  }
-  if (mode == "part") {
     metisflag = true;
     orderflag = true;
+    writeflag = true;
+  if (mode == "build") {
+    metisflag = false;
+    orderflag = false;
+  }
+  else if (mode == "order") {
+    buildflag = false;
   }
 
   // Build model message
@@ -227,7 +227,8 @@ GeNet::GeNet(mModel *msg) {
   rngtype[RNGTYPE_BLIN] = std::string("bounded linear");
 
   // Set up counters
-  idx_t jrngparam = 0;
+  idx_t jstateparam = 0;
+  idx_t jstickparam = 0;
 
   // Set up maps
   modmap.clear();
@@ -244,41 +245,75 @@ GeNet::GeNet(mModel *msg) {
     // type
     models[i].type = msg->type[i];
     // prepare containers
-    models[i].rngtype.resize(msg->xrngtype[i+1] - msg->xrngtype[i]);
-    models[i].rngparam.resize(msg->xrngtype[i+1] - msg->xrngtype[i]);
-    for (idx_t j = 0; j < models[i].rngtype.size(); ++j) {
-      // rngtype
-      models[i].rngtype[j] = msg->rngtype[msg->xrngtype[i] + j];
-      switch (models[i].rngtype[j]) {
+    models[i].statetype.resize(msg->xstatetype[i+1] - msg->xstatetype[i]);
+    models[i].stateparam.resize(msg->xstatetype[i+1] - msg->xstatetype[i]);
+    for (idx_t j = 0; j < models[i].statetype.size(); ++j) {
+      // statetype
+      models[i].statetype[j] = msg->statetype[msg->xstatetype[i] + j];
+      switch (models[i].statetype[j]) {
         case RNGTYPE_CONST:
-          models[i].rngparam[j].resize(RNGPARAM_CONST);
+          models[i].stateparam[j].resize(RNGPARAM_CONST);
           break;
         case RNGTYPE_UNIF:
-          models[i].rngparam[j].resize(RNGPARAM_UNIF);
+          models[i].stateparam[j].resize(RNGPARAM_UNIF);
           break;
         case RNGTYPE_NORM:
-          models[i].rngparam[j].resize(RNGPARAM_NORM);
+          models[i].stateparam[j].resize(RNGPARAM_NORM);
           break;
         case RNGTYPE_BNORM:
-          models[i].rngparam[j].resize(RNGPARAM_BNORM);
+          models[i].stateparam[j].resize(RNGPARAM_BNORM);
           break;
         case RNGTYPE_LIN:
-          models[i].rngparam[j].resize(RNGPARAM_LIN);
+          models[i].stateparam[j].resize(RNGPARAM_LIN);
           break;
         case RNGTYPE_BLIN:
-          models[i].rngparam[j].resize(RNGPARAM_BLIN);
+          models[i].stateparam[j].resize(RNGPARAM_BLIN);
           break;
         default:
-          CkPrintf("Error: unknown rngtype\n");
+          CkPrintf("Error: unknown statetype\n");
           break;
       }
-      for (idx_t k = 0; k < models[i].rngparam[j].size(); ++k) {
-        models[i].rngparam[j][k] = msg->rngparam[jrngparam++];
+      for (idx_t s = 0; s < models[i].stateparam[j].size(); ++s) {
+        models[i].stateparam[j][s] = msg->stateparam[jstateparam++];
+      }
+    }
+    // prepare containers
+    models[i].sticktype.resize(msg->xsticktype[i+1] - msg->xsticktype[i]);
+    models[i].stickparam.resize(msg->xsticktype[i+1] - msg->xsticktype[i]);
+    for (idx_t j = 0; j < models[i].sticktype.size(); ++j) {
+      // sticktype
+      models[i].sticktype[j] = msg->sticktype[msg->xsticktype[i] + j];
+      switch (models[i].sticktype[j]) {
+        case RNGTYPE_CONST:
+          models[i].stickparam[j].resize(RNGPARAM_CONST);
+          break;
+        case RNGTYPE_UNIF:
+          models[i].stickparam[j].resize(RNGPARAM_UNIF);
+          break;
+        case RNGTYPE_NORM:
+          models[i].stickparam[j].resize(RNGPARAM_NORM);
+          break;
+        case RNGTYPE_BNORM:
+          models[i].stickparam[j].resize(RNGPARAM_BNORM);
+          break;
+        case RNGTYPE_LIN:
+          models[i].stickparam[j].resize(RNGPARAM_LIN);
+          break;
+        case RNGTYPE_BLIN:
+          models[i].stickparam[j].resize(RNGPARAM_BLIN);
+          break;
+        default:
+          CkPrintf("Error: unknown statetype\n");
+          break;
+      }
+      for (idx_t s = 0; s < models[i].stickparam[j].size(); ++s) {
+        models[i].stickparam[j][s] = msg->stickparam[jstickparam++];
       }
     }
   }
   // Sanity check
-  CkAssert(jrngparam == msg->nrngparam);
+  CkAssert(jstateparam == msg->nstateparam);
+  CkAssert(jstickparam == msg->nstickparam);
 
   // cleanup
   delete msg;

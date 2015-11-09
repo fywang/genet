@@ -22,19 +22,27 @@ extern /*readonly*/ idx_t npdat;
 mModel* Main::BuildModel() {
   /* Bookkeeping */
   idx_t nmodname;
-  idx_t nrngtype;
-  idx_t nrngparam;
-  idx_t jrngparam;
+  idx_t nstatetype;
+  idx_t nstateparam;
+  idx_t jstateparam;
+  idx_t nsticktype;
+  idx_t nstickparam;
+  idx_t jstickparam;
 
   // Get total size of param
   nmodname = 0;
-  nrngtype = 0;
-  nrngparam = 0;
+  nstatetype = 0;
+  nstateparam = 0;
+  nsticktype = 0;
+  nstickparam = 0;
   for (idx_t i = 0; i < models.size(); ++i) {
     nmodname += models[i].modname.size();
-    nrngtype += models[i].rngtype.size();
-    for (idx_t j = 0; j < models[i].rngtype.size(); ++j) {
-      nrngparam += models[i].rngparam[j].size();
+    nstatetype += models[i].statetype.size();
+    for (idx_t j = 0; j < models[i].statetype.size(); ++j) {
+      nstateparam += models[i].stateparam[j].size();
+    }
+    for (idx_t j = 0; j < models[i].sticktype.size(); ++j) {
+      nstickparam += models[i].stickparam[j].size();
     }
   }
 
@@ -43,20 +51,26 @@ mModel* Main::BuildModel() {
   msgSize[0] = models.size();     // type
   msgSize[1] = models.size()+1;   // xmodname
   msgSize[2] = nmodname;          // modname
-  msgSize[3] = models.size()+1;   // xrngtype
-  msgSize[4] = nrngtype;          // rngtype
-  msgSize[5] = nrngparam;         // rngparam
+  msgSize[3] = models.size()+1;   // xstatetype
+  msgSize[4] = models.size()+1;   // xsticktype
+  msgSize[5] = nstatetype;        // statetype
+  msgSize[6] = nsticktype;        // sticktype
+  msgSize[7] = nstateparam;       // stateparam
+  msgSize[8] = nstickparam;       // stickparam
   mModel *mmodel = new(msgSize, 0) mModel;
   // Sizes
   mmodel->nmodel = models.size();
-  mmodel->nrngparam = nrngparam;
+  mmodel->nstateparam = nstateparam;
+  mmodel->nstickparam = nstickparam;
 
   // Prefixes starts with zero
   mmodel->xmodname[0] = 0;
-  mmodel->xrngtype[0] = 0;
+  mmodel->xstatetype[0] = 0;
+  mmodel->xsticktype[0] = 0;
 
   // Set up counters
-  jrngparam = 0;
+  jstateparam = 0;
+  jstickparam = 0;
 
   // Copy over model information
   for (idx_t i = 0; i < models.size(); ++i) {
@@ -68,17 +82,27 @@ mModel* Main::BuildModel() {
       // modname
       mmodel->modname[mmodel->xmodname[i] + j] = models[i].modname[j];
     }
-    // xrngtype
-    mmodel->xrngtype[i+1] = mmodel->xrngtype[i] + models[i].rngtype.size();
-    for (idx_t j = 0; j < models[i].rngtype.size(); ++j) {
-      // rngtype
-      mmodel->rngtype[mmodel->xrngtype[i]+j] = models[i].rngtype[j];
-      for (idx_t k = 0; k < models[i].rngparam[j].size(); ++k) {
-        mmodel->rngparam[jrngparam++] = models[i].rngparam[j][k];
+    // xstatetype
+    mmodel->xstatetype[i+1] = mmodel->xstatetype[i] + models[i].statetype.size();
+    for (idx_t j = 0; j < models[i].statetype.size(); ++j) {
+      // statetype
+      mmodel->statetype[mmodel->xstatetype[i]+j] = models[i].statetype[j];
+      for (idx_t s = 0; s < models[i].stateparam[j].size(); ++s) {
+        mmodel->stateparam[jstateparam++] = models[i].stateparam[j][s];
+      }
+    }
+    // xsticktype
+    mmodel->xsticktype[i+1] = mmodel->xsticktype[i] + models[i].sticktype.size();
+    for (idx_t j = 0; j < models[i].sticktype.size(); ++j) {
+      // sticktype
+      mmodel->sticktype[mmodel->xsticktype[i]+j] = models[i].sticktype[j];
+      for (idx_t s = 0; s < models[i].stickparam[j].size(); ++s) {
+        mmodel->stickparam[jstickparam++] = models[i].stickparam[j][s];
       }
     }
   }
-  CkAssert(jrngparam == nrngparam);
+  CkAssert(jstateparam == nstateparam);
+  CkAssert(jstickparam == nstickparam);
 
   // Return model
   return mmodel;

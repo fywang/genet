@@ -33,11 +33,15 @@ void GeNet::ScatterPart() {
       // Count sizes
       idx_t nedgidx = 0;
       idx_t nstate = 0;
+      idx_t nstick = 0;
       for (idx_t i = 0; i < vtxidxpart[prtidx].size(); ++i) {
         nedgidx += adjcypart[prtidx][i].size();
       }
       for (idx_t i = 0; i < statepart[prtidx].size(); ++i) {
         nstate += statepart[prtidx][i].size();
+      }
+      for (idx_t i = 0; i < stickpart[prtidx].size(); ++i) {
+        nstick += stickpart[prtidx][i].size();
       }
 
       // Initialize connection message
@@ -49,16 +53,19 @@ void GeNet::ScatterPart() {
       msgSize[4] = nedgidx;                       // adjcy
       msgSize[5] = nedgidx;                       // edgmodidx
       msgSize[6] = nstate;                        // state
+      msgSize[7] = nstick;                        // stick
       mPart *mpart = new(msgSize, 0) mPart;
       // Sizes
       mpart->datidx = datidx;
       mpart->prtidx = prtidx;
       mpart->nvtx = vtxidxpart[prtidx].size();
       mpart->nstate = nstate;
+      mpart->nstick = nstick;
 
       // set up counters
       idx_t jedgidx = 0;
       idx_t jstate = 0;
+      idx_t jstick = 0;
       // prefixes start at zero
       mpart->xadj[0] = 0;
 
@@ -86,8 +93,12 @@ void GeNet::ScatterPart() {
         for (idx_t s = 0; s < statepart[prtidx][i].size(); ++s) {
           mpart->state[jstate++] = statepart[prtidx][i][s];
         }
+        for (idx_t s = 0; s < stickpart[prtidx][i].size(); ++s) {
+          mpart->stick[jstick++] = stickpart[prtidx][i][s];
+        }
       }
       CkAssert(jstate == nstate);
+      CkAssert(jstick == nstick);
 
       // Send part
       thisProxy(datidxpart).GatherPart(mpart);
@@ -102,6 +113,7 @@ void GeNet::GatherPart(mPart *msg) {
   // Bookkeeping
   idx_t prtidx = msg->prtidx - xprt;
   idx_t jstate = 0;
+  idx_t jstick = 0;
   idx_t xvtx = vtxorder[prtidx].size();
   norderdat += msg->nvtx;
   norderprt[prtidx] += msg->nvtx;
@@ -112,6 +124,7 @@ void GeNet::GatherPart(mPart *msg) {
   adjcyorder[prtidx].resize(norderprt[prtidx]);
   edgmodidxorder[prtidx].resize(norderprt[prtidx]);
   stateorder[prtidx].resize(norderprt[prtidx]);
+  stickorder[prtidx].resize(norderprt[prtidx]);
 
   // copy part data (unsorted)
   for (idx_t i = 0; i < msg->nvtx; ++i) {
@@ -127,10 +140,15 @@ void GeNet::GatherPart(mPart *msg) {
     xyzorder[prtidx][(xvtx+i)*3+2] = msg->xyz[i*3+2];
     // vertex state
     stateorder[prtidx][xvtx+i].push_back(std::vector<real_t>());
+    stickorder[prtidx][xvtx+i].push_back(std::vector<tick_t>());
     CkAssert(vtxorder[prtidx][xvtx+i].modidx > 0);
-    stateorder[prtidx][xvtx+i][0].resize(models[vtxorder[prtidx][xvtx+i].modidx-1].rngtype.size());
+    stateorder[prtidx][xvtx+i][0].resize(models[vtxorder[prtidx][xvtx+i].modidx-1].statetype.size());
+    stickorder[prtidx][xvtx+i][0].resize(models[vtxorder[prtidx][xvtx+i].modidx-1].sticktype.size());
     for(idx_t s = 0; s < stateorder[prtidx][xvtx+i][0].size(); ++s) {
       stateorder[prtidx][xvtx+i][0][s] = msg->state[jstate++];
+    }
+    for(idx_t s = 0; s < stickorder[prtidx][xvtx+i][0].size(); ++s) {
+      stickorder[prtidx][xvtx+i][0][s] = msg->stick[jstick++];
     }
 
     // handle edges
@@ -144,16 +162,22 @@ void GeNet::GatherPart(mPart *msg) {
       edgmodidxorder[prtidx][xvtx+i][xedg+j] = msg->edgmodidx[msg->xadj[i] + j];
       // state
       stateorder[prtidx][xvtx+i].push_back(std::vector<real_t>());
+      stickorder[prtidx][xvtx+i].push_back(std::vector<tick_t>());
       // only push edge state if model and not 'none'
       if (edgmodidxorder[prtidx][xvtx+i][xedg+j] > 0) {
-        stateorder[prtidx][xvtx+i][xedg+j+1].resize(models[edgmodidxorder[prtidx][xvtx+i][xedg+j]-1].rngtype.size());
+        stateorder[prtidx][xvtx+i][xedg+j+1].resize(models[edgmodidxorder[prtidx][xvtx+i][xedg+j]-1].statetype.size());
+        stickorder[prtidx][xvtx+i][xedg+j+1].resize(models[edgmodidxorder[prtidx][xvtx+i][xedg+j]-1].sticktype.size());
         for(idx_t s = 0; s < stateorder[prtidx][xvtx+i][xedg+j+1].size(); ++s) {
           stateorder[prtidx][xvtx+i][xedg+j+1][s] = msg->state[jstate++];
+        }
+        for(idx_t s = 0; s < stickorder[prtidx][xvtx+i][xedg+j+1].size(); ++s) {
+          stickorder[prtidx][xvtx+i][xedg+j+1][s] = msg->stick[jstick++];
         }
       }
     }
   }
   CkAssert(jstate == msg->nstate);
+  CkAssert(jstick == msg->nstick);
 
   // cleanup
   delete msg;
@@ -171,6 +195,7 @@ void GeNet::GatherPart(mPart *msg) {
     adjcypart.clear();
     edgmodidxpart.clear();
     statepart.clear();
+    stickpart.clear();
 
     // collect order parts
     std::string orderprts;
@@ -188,6 +213,7 @@ void GeNet::GatherPart(mPart *msg) {
     adjcy.resize(norderdat);
     edgmodidx.resize(norderdat);
     state.resize(norderdat);
+    stick.resize(norderdat);
 
     // Go through part data and reorder
     idx_t xvtx = 0;
@@ -206,6 +232,7 @@ void GeNet::GatherPart(mPart *msg) {
         xyz[(xvtx+i)*3+2] = xyzorder[jprt][(vtxorder[jprt][i].vtxidxloc)*3+2];
         // state (for vertex)
         state[xvtx+i].push_back(stateorder[jprt][vtxorder[jprt][i].vtxidxloc][0]);
+        stick[xvtx+i].push_back(stickorder[jprt][vtxorder[jprt][i].vtxidxloc][0]);
       }
 
       // increment xvtx
@@ -256,11 +283,7 @@ void GeNet::Reorder(mOrder *msg) {
           edgorder.back().edgidx = oldtonew[adjcyorder[jprt][i][j]];
           edgorder.back().modidx = edgmodidxorder[jprt][i][j];
           edgorder.back().state = stateorder[jprt][i][j+1];
-          //edgorder.back().state = new real_t[stateorder[jprt][i][j+1].size()];
-          //edgorder.back().nstate = stateorder[jprt][i][j+1].size();
-          //for (idx_t s = 0; s < stateorder[jprt][i][j+1].size(); ++s) {
-          //  edgorder.back().state[s] = stateorder[jprt][i][j+1][s];
-          //}
+          edgorder.back().stick = stickorder[jprt][i][j+1];
         }
       }
       // sort newly added indices
@@ -270,11 +293,7 @@ void GeNet::Reorder(mOrder *msg) {
         adjcy[xvtx+i].push_back(edgorder[j].edgidx);
         edgmodidx[xvtx+i].push_back(edgorder[j].modidx);
         state[xvtx+i].push_back(edgorder[j].state);
-        //state[i].push_back(std::vector<real_t>());
-        //for (idx_t s = 0; s < edgorder[j].nstate; ++s) {
-        //  state[i].back().push_back(edgorder[j].state[s]);
-        //}
-        //delete[] edgorder[j].state;
+        stick[xvtx+i].push_back(edgorder[j].stick);
       }
     }
     xvtx += norderprt[jprt];

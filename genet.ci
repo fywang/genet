@@ -11,11 +11,15 @@ mainmodule genet {
     idx_t type[];
     idx_t xmodname[];
     char modname[];
-    idx_t xrngtype[];
-    idx_t rngtype[];
-    real_t rngparam[];
+    idx_t xstatetype[];
+    idx_t xsticktype[];
+    idx_t statetype[];
+    idx_t sticktype[];
+    real_t stateparam[];
+    real_t stickparam[];
     idx_t nmodel;
-    idx_t nrngparam;
+    idx_t nstateparam;
+    idx_t nstickparam;
   };
   
   message mGraph {
@@ -64,10 +68,12 @@ mainmodule genet {
     idx_t adjcy[];
     idx_t edgmodidx[];
     real_t state[];
+    tick_t stick[];
     idx_t datidx;
     idx_t prtidx;
     idx_t nvtx;
     idx_t nstate;
+    idx_t nstick;
   };
 
   message mOrder {

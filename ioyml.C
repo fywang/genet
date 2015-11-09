@@ -152,13 +152,37 @@ int Main::ReadModel() {
       CkPrintf("  warning: %s has no state\n", models[i].modname.c_str());
     }
 
+    // Count sticks
+    idx_t nstate = 0;
+    idx_t nstick = 0;
+    for (idx_t j = 0; j < state.size(); ++j) {
+      std::string reptype;
+      try {
+        // reptype
+        reptype = state[j]["rep"].as<std::string>();
+      } catch (YAML::RepresentationException& e) {
+        reptype = std::string("real");
+      }
+      if (reptype == "tick") {
+        ++nstick;
+      }
+      else {
+        ++nstate;
+      }
+    }
+
     // preallocate space
-    models[i].rngtype.resize(state.size());
-    models[i].rngparam.resize(state.size());
+    models[i].statetype.resize(nstate);
+    models[i].stateparam.resize(nstate);
+    models[i].sticktype.resize(nstick);
+    models[i].stickparam.resize(nstick);
+    idx_t jstate = 0;
+    idx_t jstick = 0;
 
     // loop through the states
     for (idx_t j = 0; j < state.size(); ++j) {
       std::string rngtype;
+      std::string reptype;
       try {
         // rngtype
         rngtype = state[j]["type"].as<std::string>();
@@ -166,109 +190,244 @@ int Main::ReadModel() {
         CkPrintf("  state type: %s\n", e.what());
         return 1;
       }
+
+      try {
+        // reptype
+        reptype = state[j]["rep"].as<std::string>();
+      } catch (YAML::RepresentationException& e) {
+        reptype = std::string("real");
+      }
+      if (reptype != "tick") {
+        reptype = std::string("real");
+      }
+
       // based on rng type, get params
       if (rngtype == "constant") {
-        // Constant value
-        models[i].rngtype[j] = RNGTYPE_CONST;
-        models[i].rngparam[j].resize(RNGPARAM_CONST);
-        try {
-          // value
-          models[i].rngparam[j][0] = state[j]["value"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state constant value: %s\n", e.what());
-          return 1;
+        if (reptype == "tick") {
+          // Constant value
+          models[i].sticktype[jstick] = RNGTYPE_CONST;
+          models[i].stickparam[jstick].resize(RNGPARAM_CONST);
+          try {
+            // value
+            models[i].stickparam[jstick][0] = state[j]["value"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state constant value: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
+        }
+        else {
+          // Constant value
+          models[i].statetype[jstate] = RNGTYPE_CONST;
+          models[i].stateparam[jstate].resize(RNGPARAM_CONST);
+          try {
+            // value
+            models[i].stateparam[jstick][0] = state[j]["value"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state constant value: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
         }
       }
       else if (rngtype == "uniform") {
-        // Uniform distribution
-        models[i].rngtype[j] = RNGTYPE_UNIF;
-        models[i].rngparam[j].resize(RNGPARAM_UNIF);
-        try {
-          // min value
-          models[i].rngparam[j][0] = state[j]["min"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state uniform min: %s\n", e.what());
-          return 1;
+        if (reptype == "tick") {
+          // Uniform distribution
+          models[i].sticktype[jstick] = RNGTYPE_UNIF;
+          models[i].stickparam[jstick].resize(RNGPARAM_UNIF);
+          try {
+            // min value
+            models[i].stickparam[jstick][0] = state[j]["min"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform min: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // max value
+            models[i].stickparam[jstick][1] = state[j]["max"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform max: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
         }
-        try {
-          // max value
-          models[i].rngparam[j][1] = state[j]["max"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state uniform max: %s\n", e.what());
-          return 1;
+        else {
+          // Uniform distribution
+          models[i].statetype[jstate] = RNGTYPE_UNIF;
+          models[i].stateparam[jstate].resize(RNGPARAM_UNIF);
+          try {
+            // min value
+            models[i].stateparam[jstate][0] = state[j]["min"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform min: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // max value
+            models[i].stateparam[jstate][1] = state[j]["max"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform max: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
         }
       }
       else if (rngtype == "normal") {
-        // Normal distribution
-        models[i].rngtype[j] = RNGTYPE_NORM;
-        models[i].rngparam[j].resize(RNGPARAM_NORM);
-        try {
-          // mean
-          models[i].rngparam[j][0] = state[j]["mean"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state normal mean: %s\n", e.what());
-          return 1;
+        if (reptype == "tick") {
+          // Normal distribution
+          models[i].sticktype[jstick] = RNGTYPE_NORM;
+          models[i].stickparam[jstick].resize(RNGPARAM_NORM);
+          try {
+            // mean
+            models[i].stickparam[jstick][0] = state[j]["mean"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state normal mean: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // standard deviation
+            models[i].stickparam[jstick][1] = state[j]["std"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state normal std: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
         }
-        try {
-          // standard deviation
-          models[i].rngparam[j][1] = state[j]["std"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state normal std: %s\n", e.what());
-          return 1;
+        else {
+          // Normal distribution
+          models[i].statetype[jstate] = RNGTYPE_NORM;
+          models[i].stateparam[jstate].resize(RNGPARAM_NORM);
+          try {
+            // mean
+            models[i].stateparam[jstate][0] = state[j]["mean"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state normal mean: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // standard deviation
+            models[i].stateparam[jstate][1] = state[j]["std"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state normal std: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
         }
       }
       else if (rngtype == "linear") {
-        // Proportional to distance
-        models[i].rngtype[j] = RNGTYPE_LIN;
-        models[i].rngparam[j].resize(RNGPARAM_LIN);
-        try {
-          // scale
-          models[i].rngparam[j][0] = state[j]["scale"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state linear scale: %s\n", e.what());
-          return 1;
+        if (reptype == "tick") {
+          // Proportional to distance
+          models[i].sticktype[jstick] = RNGTYPE_LIN;
+          models[i].stickparam[jstick].resize(RNGPARAM_LIN);
+          try {
+            // scale
+            models[i].stickparam[jstick][0] = state[j]["scale"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state linear scale: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // offset
+            models[i].stickparam[jstick][1] = state[j]["offset"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  warning: state linear offset not defined,\n"
+                "           defaulting to 0\n");
+            models[i].stickparam[jstick][1] = 0.0;
+          }
+          ++jstick;
         }
-        try {
-          // offset
-          models[i].rngparam[j][1] = state[j]["offset"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  warning: state linear offset not defined,\n"
-                   "           defaulting to 0\n");
-          models[i].rngparam[j][1] = 0.0;
+        else {
+          // Proportional to distance
+          models[i].statetype[jstate] = RNGTYPE_LIN;
+          models[i].stateparam[jstate].resize(RNGPARAM_LIN);
+          try {
+            // scale
+            models[i].stateparam[jstate][0] = state[j]["scale"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state linear scale: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // offset
+            models[i].stateparam[jstate][1] = state[j]["offset"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  warning: state linear offset not defined,\n"
+                "           defaulting to 0\n");
+            models[i].stateparam[jstate][1] = 0.0;
+          }
+          ++jstate;
         }
       }
       else if (rngtype == "bounded linear") {
-        // Proportional to distance
-        models[i].rngtype[j] = RNGTYPE_BLIN;
-        models[i].rngparam[j].resize(RNGPARAM_BLIN);
-        try {
-          // scale
-          models[i].rngparam[j][0] = state[j]["scale"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state bounded linear scale: %s\n", e.what());
-          return 1;
+        if (reptype == "tick") {
+          // Proportional to distance
+          models[i].sticktype[jstick] = RNGTYPE_BLIN;
+          models[i].stickparam[jstick].resize(RNGPARAM_BLIN);
+          try {
+            // scale
+            models[i].stickparam[jstick][0] = state[j]["scale"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded linear scale: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // offset
+            models[i].stickparam[jstick][1] = state[j]["offset"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  warning: state linear offset not defined,\n"
+                "           defaulting to 0\n");
+            models[i].stickparam[jstick][1] = 0.0;
+          }
+          try {
+            // min value
+            models[i].stickparam[jstick][2] = state[j]["min"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded linear min: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // max value
+            models[i].stickparam[jstick][3] = state[j]["max"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded linear max: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
         }
-        try {
-          // offset
-          models[i].rngparam[j][1] = state[j]["offset"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  warning: state linear offset not defined,\n"
-                   "           defaulting to 0\n");
-          models[i].rngparam[j][1] = 0.0;
-        }
-        try {
-          // min value
-          models[i].rngparam[j][2] = state[j]["min"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state bounded linear min: %s\n", e.what());
-          return 1;
-        }
-        try {
-          // max value
-          models[i].rngparam[j][3] = state[j]["max"].as<real_t>();
-        } catch (YAML::RepresentationException& e) {
-          CkPrintf("  state bounded linear max: %s\n", e.what());
-          return 1;
+        else {
+          // Proportional to distance
+          models[i].statetype[jstate] = RNGTYPE_BLIN;
+          models[i].stateparam[jstate].resize(RNGPARAM_BLIN);
+          try {
+            // scale
+            models[i].stateparam[jstate][0] = state[j]["scale"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded linear scale: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // offset
+            models[i].stateparam[jstate][1] = state[j]["offset"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  warning: state linear offset not defined,\n"
+                "           defaulting to 0\n");
+            models[i].stateparam[jstate][1] = 0.0;
+          }
+          try {
+            // min value
+            models[i].stateparam[jstate][2] = state[j]["min"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded linear min: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // max value
+            models[i].stateparam[jstate][3] = state[j]["max"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded linear max: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
         }
       }
       else {
@@ -276,6 +435,8 @@ int Main::ReadModel() {
         return 1;
       }
     }
+    CkAssert(jstate == nstate);
+    CkAssert(jstick == nstick);
   }
 
   // Return success

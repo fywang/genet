@@ -54,6 +54,7 @@ void GeNet::Read(mMetis *msg) {
   /* Bookkeeping */
   idx_t nsizedat;
   idx_t nstatedat;
+  idx_t nstickdat;
   //idx_t nstickdat;
   /* File operations */
   FILE *pPart;
@@ -102,8 +103,10 @@ void GeNet::Read(mMetis *msg) {
   edgmodidxpart.resize(npnet);
   adjcypart.resize(npnet);
   statepart.resize(npnet);
+  stickpart.resize(npnet);
   nsizedat = 0;
   nstatedat = 0;
+  nstickdat = 0;
 
   // Read in graph information
   for (idx_t i = 0; i < partmetis.size(); ++i) {
@@ -154,13 +157,21 @@ void GeNet::Read(mMetis *msg) {
     // vtxmodidx
     vtxmodidxpart[partmetis[i]].push_back(modidx);
     statepart[partmetis[i]].push_back(std::vector<real_t>());
+    stickpart[partmetis[i]].push_back(std::vector<tick_t>());
     CkAssert(modidx > 0);
-    for(idx_t s = 0; s < models[modidx-1].rngtype.size(); ++s) {
+    for(idx_t s = 0; s < models[modidx-1].statetype.size(); ++s) {
       real_t stt = strtoreal(oldstr, &newstr);
       oldstr = newstr;
       // state
       statepart[partmetis[i]].back().push_back(stt);
       ++nstatedat;
+    }
+    for(idx_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
+      tick_t stt = strtotick(oldstr, &newstr, 10);
+      oldstr = newstr;
+      // state
+      stickpart[partmetis[i]].back().push_back(stt);
+      ++nstickdat;
     }
 
     // edgmodidx
@@ -171,14 +182,22 @@ void GeNet::Read(mMetis *msg) {
       // modidx
       edgmodidxpart[partmetis[i]].back().push_back(modidx);
       statepart[partmetis[i]].push_back(std::vector<real_t>());
+      stickpart[partmetis[i]].push_back(std::vector<tick_t>());
       // only push edge state if model and not 'none'
       if (modidx > 0) {
-        for(idx_t s = 0; s < models[modidx-1].rngtype.size(); ++s) {
+        for(idx_t s = 0; s < models[modidx-1].statetype.size(); ++s) {
           real_t stt = strtoreal(oldstr, &newstr);
           oldstr = newstr;
           // state
           statepart[partmetis[i]].back().push_back(stt);
           ++nstatedat;
+        }
+        for(idx_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
+          tick_t stt = strtotick(oldstr, &newstr, 10);
+          oldstr = newstr;
+          // state
+          stickpart[partmetis[i]].back().push_back(stt);
+          ++nstickdat;
         }
       }
       modidx = strtomodidx(oldstr, &newstr);
@@ -194,8 +213,8 @@ void GeNet::Read(mMetis *msg) {
   delete[] line;
 
   // Print out some information
-  CkPrintf("  File: %" PRIidx "   Vertices: %" PRIidx "   Edges: %" PRIidx "   States: %" PRIidx "\n",
-      datidx, partmetis.size(), nsizedat, nstatedat);
+  CkPrintf("  File: %" PRIidx "   Vertices: %" PRIidx "   Edges: %" PRIidx "   States: %" PRIidx "   Sticks: %" PRIidx"\n",
+      datidx, partmetis.size(), nsizedat, nstatedat, nstickdat);
 
   // Prepare for partitioning
   cpdat = 0;
@@ -205,6 +224,7 @@ void GeNet::Read(mMetis *msg) {
   adjcyorder.resize(nprt);
   edgmodidxorder.resize(nprt);
   stateorder.resize(nprt);
+  stickorder.resize(nprt);
   norderprt.resize(nprt);
   for (idx_t i = 0; i < nprt; ++i) {
     norderprt[i] = 0;
@@ -267,9 +287,14 @@ void GeNet::Write() {
 
       // vertex state
       fprintf(pState, " %s", modname[vtxmodidx[jvtxidx]].c_str());
+      CkAssert(vtxmodidx[jvtxidx] > 0);
       rdist[k].nstate += state[jvtxidx][0].size();
-      for (idx_t s = 0; s < state[jvtxidx][0].size(); ++s) {
+      rdist[k].nstick += stick[jvtxidx][0].size();
+      for (idx_t s = 0; s < models[vtxmodidx[jvtxidx]-1].statetype.size(); ++s) {
         fprintf(pState, " %" PRIrealfull "", state[jvtxidx][0][s]);
+      }
+      for (idx_t s = 0; s < models[vtxmodidx[jvtxidx]-1].sticktype.size(); ++s) {
+        fprintf(pState, " %" PRItick "", stick[jvtxidx][0][s]);
       }
       
       // edge state
@@ -278,8 +303,14 @@ void GeNet::Write() {
       for (idx_t j = 0; j < edgmodidx[jvtxidx].size(); ++j) {
         fprintf(pState, " %s", modname[edgmodidx[jvtxidx][j]].c_str());
         rdist[k].nstate += state[jvtxidx][j+1].size();
-        for (idx_t s = 0; s < state[jvtxidx][j+1].size(); ++s) {
-          fprintf(pState, " %" PRIrealfull "", state[jvtxidx][j+1][s]);
+        rdist[k].nstick += stick[jvtxidx][j+1].size();
+        if (edgmodidx[jvtxidx][j] > 0) {
+          for (idx_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].statetype.size(); ++s) {
+            fprintf(pState, " %" PRIrealfull "", state[jvtxidx][j+1][s]);
+          }
+          for (idx_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].sticktype.size(); ++s) {
+            fprintf(pState, " %" PRItick "", stick[jvtxidx][j+1][s]);
+          }
         }
       }
 
