@@ -89,7 +89,7 @@ mainmodule genet {
 
     entry [reductiontarget] void Control();
     entry [reductiontarget] void ReturnControl();
-    entry [reductiontarget] void Halt(CkReductionMsg *msg);
+    entry void Halt(CkReductionMsg *msg);
   };
 
   array [1D] GeNet {
@@ -103,6 +103,6 @@ mainmodule genet {
     entry void ScatterPart();
     entry void GatherPart(mPart *msg);
     entry void Reorder(mOrder *msg);
-    entry void Write();
+    entry void Write(const CkCallback &cb);
   };
 };

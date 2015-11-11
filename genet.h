@@ -324,7 +324,7 @@ class GeNet : public CBase_GeNet {
     mOrder* BuildOrder();
 
     /* Write Network */
-    void Write();
+    void Write(const CkCallback &cb);
 
     /* Connections */
     mConn* BuildPrevConn(idx_t reqidx);

@@ -158,9 +158,8 @@ void Main::Control() {
       CkPrintf("Writing network\n");
       writeflag = false;
 
-      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Halt), thisProxy);
-      genet.Write();
-      genet.ckSetReductionClient(cb);
+      CkCallback *cb = new CkCallback(CkIndex_Main::Halt(NULL), thisProxy);
+      genet.Write(*cb);
     }
   }
   else if (mode == "part") {
@@ -204,9 +203,8 @@ void Main::Control() {
       CkPrintf("Writing network\n");
       writeflag = false;
 
-      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Halt), thisProxy);
-      genet.Write();
-      genet.ckSetReductionClient(cb);
+      CkCallback *cb = new CkCallback(CkIndex_Main::Halt(NULL), thisProxy);
+      genet.Write(*cb);
     }
   }
 }
@@ -228,8 +226,8 @@ void Main::Halt(CkReductionMsg *msg) {
     netdist.push_back(*((dist_t *)msg->getData()+i));
   }
   CkAssert(netdist.size() == npnet);
-  // automatically deleted?
-  //delete msg;
+  // cleanup
+  delete msg;
   
   // Write distribution
   if (WriteDist()) {

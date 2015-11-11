@@ -243,7 +243,7 @@ void GeNet::Read(mMetis *msg) {
 
 // Write graph adjacency distribution
 //
-void GeNet::Write() {
+void GeNet::Write(const CkCallback &cb) {
   /* Bookkeeping */
   std::vector<dist_t> rdist;
   idx_t jvtxidx;
@@ -332,7 +332,7 @@ void GeNet::Write() {
   fclose(pState);
 
   // return control to main
-  contribute(nprt*sizeof(dist_t), rdist.data(), net_dist);
+  contribute(nprt*sizeof(dist_t), rdist.data(), net_dist, cb);
 }
 
 /**************************************************************************
