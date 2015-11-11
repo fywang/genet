@@ -9,6 +9,7 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
+/*readonly*/ CProxy_Main mainProxy;
 /*readonly*/ std::string filebase;
 /*readonly*/ std::string filemod;
 /*readonly*/ idx_t npdat;
@@ -34,7 +35,7 @@ Main::Main(CkArgMsg* msg) {
   }
   else if (msg->argc == 2) {
     mode = msg->argv[1];
-    if (mode != "build" && mode != "order") {
+    if (mode != "build" && mode != "part" && mode != "order") {
       configfile = msg->argv[1];
       mode = std::string("build");
     }
@@ -45,7 +46,7 @@ Main::Main(CkArgMsg* msg) {
   else if (msg->argc == 3) {
     configfile = msg->argv[1];
     mode = msg->argv[2];
-    if (mode != "build" && mode != "order") {
+    if (mode != "build" && mode != "part" && mode != "order") {
       CkPrintf("Error: mode %s not valid\n"
                "       valid modes: build, order\n", mode.c_str());
       CkExit();
@@ -92,16 +93,26 @@ Main::Main(CkArgMsg* msg) {
 
   // Set up control flags
     buildflag = true;
+    partsflag = true;
     metisflag = true;
     orderflag = true;
     writeflag = true;
   if (mode == "build") {
+    partsflag = false;
+    metisflag = false;
+    orderflag = false;
+  }
+  else if (mode == "part") {
+    buildflag = false;
     metisflag = false;
     orderflag = false;
   }
   else if (mode == "order") {
     buildflag = false;
+    partsflag = false;
   }
+  // MPI Glue
+  mainProxy = thisProxy;
 
   // Build model message
   mModel *mmodel = BuildModel();
@@ -112,7 +123,7 @@ Main::Main(CkArgMsg* msg) {
   opts.setMap(rrMap);
 
   // Create chare array
-  CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
+  CkCallback *cb = new CkCallback(CkReductionTarget(Main, ReturnControl), thisProxy);
   genet = CProxy_GeNet::ckNew(mmodel, opts);
   genet.ckSetReductionClient(cb);
 }
@@ -126,52 +137,84 @@ Main::Main(CkMigrateMessage* msg) {
 // Main control
 //
 void Main::Control() {
-  if (buildflag) {
-    CkPrintf("Building network\n");
-    buildflag = false;
+  if (mode == "build") {
+    if (buildflag) {
+      CkPrintf("Building network\n");
+      buildflag = false;
 
-    // Read graph information
-    if (ReadGraph()) {
-      CkPrintf("Error loading graph...\n");
+      // Read graph information
+      if (ReadGraph()) {
+        CkPrintf("Error loading graph...\n");
+        CkExit();
+      }
+      mGraph *mgraph = BuildGraph();
+
+      // Build Network
+      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
+      genet.Build(mgraph);
+      genet.ckSetReductionClient(cb);
+    }
+    else if (writeflag) {
+      CkPrintf("Writing network\n");
+      writeflag = false;
+
+      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Halt), thisProxy);
+      genet.Write();
+      genet.ckSetReductionClient(cb);
+    }
+  }
+  else if (mode == "part") {
+    if (partsflag) {
+      CkPrintf("Partitioning network\n");
+      partsflag = false;
+
+      CkCallback *cb = new CkCallback(CkReductionTarget(Main, ReturnControl), thisProxy);
+      genet.SetPartition();
+      genet.ckSetReductionClient(cb);
+    }
+    else {
+      // Already partitioned return control to MPI
       CkExit();
     }
-    mGraph *mgraph = BuildGraph();
+  }
+  else if (mode == "order") {
+    if (metisflag) {
+      CkPrintf("Reading network\n");
+      metisflag = false;
 
-    // Build Network
-    CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
-    genet.Build(mgraph);
-    genet.ckSetReductionClient(cb);
-  }
-  else if (metisflag) {
-    CkPrintf("Reading network\n");
-    metisflag = false;
-    
-    if (ReadMetis()) {
-      CkPrintf("Error loading metis...\n");
-      CkExit();
+      if (ReadMetis()) {
+        CkPrintf("Error loading metis...\n");
+        CkExit();
+      }
+      mMetis *mmetis = BuildMetis();
+
+      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
+      genet.Read(mmetis);
+      genet.ckSetReductionClient(cb);
     }
-    mMetis *mmetis = BuildMetis();
-    
-    CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
-    genet.Read(mmetis);
-    genet.ckSetReductionClient(cb);
+    else if (orderflag) {
+      CkPrintf("Reordering network\n");
+      orderflag = false;
+
+      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
+      genet.ScatterPart();
+      genet.ckSetReductionClient(cb);
+    }
+    else if (writeflag) {
+      CkPrintf("Writing network\n");
+      writeflag = false;
+
+      CkCallback *cb = new CkCallback(CkReductionTarget(Main, Halt), thisProxy);
+      genet.Write();
+      genet.ckSetReductionClient(cb);
+    }
   }
-  else if (orderflag) {
-    CkPrintf("Reordering network\n");
-    orderflag = false;
-    
-    CkCallback *cb = new CkCallback(CkReductionTarget(Main, Control), thisProxy);
-    genet.ScatterPart();
-    genet.ckSetReductionClient(cb);
-  }
-  else if (writeflag) {
-    CkPrintf("Writing network\n");
-    writeflag = false;
-    
-    CkCallback *cb = new CkCallback(CkReductionTarget(Main, Halt), thisProxy);
-    genet.Write();
-    genet.ckSetReductionClient(cb);
-  }
+}
+
+// Main Return Rontrol to MPI
+//
+void Main::ReturnControl() {
+  CkExit();
 }
 
 // Main Stop
@@ -184,8 +227,10 @@ void Main::Halt(CkReductionMsg *msg) {
   for (std::size_t i = 0; i < (msg->getSize())/sizeof(dist_t); ++i) {
     netdist.push_back(*((dist_t *)msg->getData()+i));
   }
-  delete msg;
-
+  CkAssert(netdist.size() == npnet);
+  // automatically deleted?
+  //delete msg;
+  
   // Write distribution
   if (WriteDist()) {
     CkPrintf("Error writing distribution...\n");
@@ -339,6 +384,33 @@ GeNet::GeNet(CkMigrateMessage* msg) {
 //
 GeNet::~GeNet() {
 }
+
+
+/**************************************************************************
+* MPI Glue Code
+**************************************************************************/
+
+// Main control loop
+//
+void GeNet_MainControl() {
+  // Main is run on PE 0
+  if (CkMyPe() == 0) {
+    mainProxy.Control();
+  }
+  // Turn control over to Charm++
+  StartCharmScheduler();
+}
+
+// Control Flags
+//
+void GeNet::SetPartition() {
+  GeNet_UnSetDoneFlag();
+  GeNet_SetPartFlag();
+
+  // return control to main
+  contribute(0, NULL, CkReduction::nop);
+}
+
 
 /**************************************************************************
 * Charm++ Definitions

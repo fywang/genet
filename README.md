@@ -13,15 +13,30 @@
   * ParMETIS (parmetis-4.0.3)
 
 # Settings
-  In metis.h (for METIS and ParMETIS):
-  - IDXTYPEWIDTH 64
-  - REALTYPEWIDTH 64
+  In `metis.h` (for METIS and ParMETIS):
+  - `IDXTYPEWIDTH 64`
+  - `REALTYPEWIDTH 64`
 
 # Compiling Charm++
-## On Linux
-  `./build charm++ mpi-linux-x86_64 -j8 -O3`
-## On OSX
-  `./build charm++ mpi-darwin-x86_64 -j8 -O3`
+  * On Linux: `./build charm++ mpi-linux-x86_64 -j8 -O3`
+  * On OSX `./build charm++ mpi-darwin-x86_64 -j8 -O3`
+  * Set environment variable `CHARMDIR` to where you installed Charm++
+
+# Building genet
+  * `make`
+
+# Configuring network (`config.yml`)
+  - `npdat` is the number of processors the network data will be stored to
+  - `npnet` is the number of partitions the network will be split into
+  - `filebase` is the location of where to read/write the files for the network
+
+# Running genet
+  - `charmrun +p{npdat} ./genet [config file] [mode]`
+  - `npdat` should match the one in the config file (defaults to `config.yml`)
+  - The different modes are:
+    1. `build` builds the network (default if no mode specified)
+    2. `part` partition the network (requires network to have been built)
+    3. `order` reorders the network based on partitioning (requires partitioning)
 
 # Compiling on OSX
   Note: if you run into an error about thread local variables while compiling, the culprit is likely because XCode's gcc versions aren't as up to date on these things as one might like. Make sure that the dependencies being compiled are using the right compilers (i.e. the Homebrew ones)
@@ -37,9 +52,9 @@
     3. check by running `gcc --version`
   4. `brew install mpich2 --build-from-source`
   5. `brew install yaml-cpp --build-from-source`
-    As this might install boost from source too, it may be quicker to:
-    - `brew install yaml-cpp`
-    - `brew reinstall yaml-cpp --build-from-source`
+    - because of the boost dependency, it may be quicker to:
+      1. `brew install yaml-cpp`
+      2. `brew reinstall yaml-cpp --build-from-source`
   6. install metis and parmetis (from Karypis lab page) using gcc-4.8 too
   7. install charm++ with gcc-4.8 (as above)
 

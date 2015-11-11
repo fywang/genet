@@ -18,8 +18,14 @@
 #include <cctype>
 #include <vector>
 #include <unordered_map>
+
 #include "typedefs.h"
 #include "timing.h"
+
+#include <mpi.h>
+#include "mpi-interoperate.h"
+#include "genet-mpi.h"
+
 #include "pup_stl.h"
 #include "genet.decl.h"
 
@@ -251,6 +257,7 @@ class Main : public CBase_Main {
 
     /* Control */
     void Control();
+    void ReturnControl();
     void Halt(CkReductionMsg *msg);
 
     /* Persistence */
@@ -281,6 +288,7 @@ class Main : public CBase_Main {
     /* Bookkeeping */
     std::string mode;
     bool buildflag;
+    bool partsflag;
     bool metisflag;
     bool orderflag;
     bool writeflag;
@@ -304,6 +312,9 @@ class GeNet : public CBase_GeNet {
     void Build(mGraph *msg);
     void Connect(mConn *msg);
     void ConnRequest(idx_t reqidx);
+
+    /* Partition Network */
+    void SetPartition();
 
     /* Reorder Network */
     void Read(mMetis *msg);

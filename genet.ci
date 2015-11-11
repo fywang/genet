@@ -1,4 +1,5 @@
 mainmodule genet {
+  readonly CProxy_Main mainProxy;
   readonly std::string filebase;
   readonly std::string filemod;
   readonly idx_t npdat;
@@ -87,6 +88,7 @@ mainmodule genet {
     entry Main(CkArgMsg *msg);
 
     entry [reductiontarget] void Control();
+    entry [reductiontarget] void ReturnControl();
     entry [reductiontarget] void Halt(CkReductionMsg *msg);
   };
 
@@ -97,6 +99,7 @@ mainmodule genet {
     entry void Read(mMetis *msg);
     entry void Connect(mConn *msg);
     entry void ConnRequest(idx_t reqidx);
+    entry void SetPartition();
     entry void ScatterPart();
     entry void GatherPart(mPart *msg);
     entry void Reorder(mOrder *msg);

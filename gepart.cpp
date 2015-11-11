@@ -21,7 +21,7 @@
 #define MAXLINE 1280000
 #define FILENAMESIZE 256
 
-int main(int argc, char ** argv) {
+int GeNet_Partition(int argc, char ** argv) {
   /* MPI */
   int npdat, datidx;
   MPI_Comm comm;
@@ -64,7 +64,6 @@ int main(int argc, char ** argv) {
 
   // Initialize MPI
   //
-  MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD,&datidx);
   MPI_Comm_size(MPI_COMM_WORLD,&npdat);
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
@@ -74,8 +73,23 @@ int main(int argc, char ** argv) {
   if (argc < 2) {
     configfile = "config.yml"; // default
   }
-  else {
+  else if (argc == 2) {
+    std::string mode = argv[1];
+    if (mode != "build" && mode != "part" && mode != "order") {
+      configfile = argv[1];
+    }
+    else {
+      configfile = "config.yml"; // default
+    }
+  }
+  else if (argc == 3) {
     configfile = argv[1];
+  }
+  else {
+    if (datidx == 0) {
+      printf("Usage: [config file] [mode]\n");
+    }
+    return 1;
   }
 
   // Load configuration
@@ -98,7 +112,9 @@ int main(int argc, char ** argv) {
         filename[filebase.size()] = '\0';
       }
       else {
-        printf("  filebase too long: %s\n", filebase.c_str());
+        printf("  filebase too long: %s\n"
+               "  max filename size: %d\n",
+               filebase.c_str(), FILENAMESIZE);
       }
     } catch (YAML::RepresentationException& e) {
       printf("  filebase: %s\n", e.what());
@@ -316,6 +332,5 @@ int main(int argc, char ** argv) {
   delete[] tpwgts;
 
   // Finalize
-  MPI_Finalize();
   return 0;
 }
