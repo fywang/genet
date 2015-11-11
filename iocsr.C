@@ -35,7 +35,7 @@ CkReductionMsg *netDist(int nMsg, CkReductionMsg **msgs) {
   std::vector<dist_t> ret;
   ret.clear();
   for (int i = 0; i < nMsg; i++) {
-    for (int j = 0; j < msgs[i]->getSize()/sizeof(dist_t); ++j) {
+    for (std::size_t j = 0; j < msgs[i]->getSize()/sizeof(dist_t); ++j) {
       // Extract data and reduce 
       ret.push_back(*((dist_t *)msgs[i]->getData() + j));
     }
@@ -109,7 +109,7 @@ void GeNet::Read(mMetis *msg) {
   nstickdat = 0;
 
   // Read in graph information
-  for (idx_t i = 0; i < partmetis.size(); ++i) {
+  for (std::size_t i = 0; i < partmetis.size(); ++i) {
     while(fgets(line, MAXLINE, pPart) && line[0] == '%');
     oldstr = line;
     newstr = NULL;
@@ -159,14 +159,14 @@ void GeNet::Read(mMetis *msg) {
     statepart[partmetis[i]].push_back(std::vector<real_t>());
     stickpart[partmetis[i]].push_back(std::vector<tick_t>());
     CkAssert(modidx > 0);
-    for(idx_t s = 0; s < models[modidx-1].statetype.size(); ++s) {
+    for(std::size_t s = 0; s < models[modidx-1].statetype.size(); ++s) {
       real_t stt = strtoreal(oldstr, &newstr);
       oldstr = newstr;
       // state
       statepart[partmetis[i]].back().push_back(stt);
       ++nstatedat;
     }
-    for(idx_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
+    for(std::size_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
       tick_t stt = strtotick(oldstr, &newstr, 10);
       oldstr = newstr;
       // state
@@ -185,14 +185,14 @@ void GeNet::Read(mMetis *msg) {
       stickpart[partmetis[i]].push_back(std::vector<tick_t>());
       // only push edge state if model and not 'none'
       if (modidx > 0) {
-        for(idx_t s = 0; s < models[modidx-1].statetype.size(); ++s) {
+        for(std::size_t s = 0; s < models[modidx-1].statetype.size(); ++s) {
           real_t stt = strtoreal(oldstr, &newstr);
           oldstr = newstr;
           // state
           statepart[partmetis[i]].back().push_back(stt);
           ++nstatedat;
         }
-        for(idx_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
+        for(std::size_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
           tick_t stt = strtotick(oldstr, &newstr, 10);
           oldstr = newstr;
           // state
@@ -247,7 +247,6 @@ void GeNet::Write() {
   /* Bookkeeping */
   std::vector<dist_t> rdist;
   idx_t jvtxidx;
-  idx_t jstate;
   /* File operations */
   FILE *pCoord;
   FILE *pAdjcy;
@@ -269,7 +268,6 @@ void GeNet::Write() {
   // Set up distribution
   rdist.resize(nprt);
   jvtxidx = 0;
-  jstate = 0;
 
   // Loop through parts
   for (idx_t k = 0; k < nprt; ++k) {
@@ -290,25 +288,25 @@ void GeNet::Write() {
       CkAssert(vtxmodidx[jvtxidx] > 0);
       rdist[k].nstate += state[jvtxidx][0].size();
       rdist[k].nstick += stick[jvtxidx][0].size();
-      for (idx_t s = 0; s < models[vtxmodidx[jvtxidx]-1].statetype.size(); ++s) {
+      for (std::size_t s = 0; s < models[vtxmodidx[jvtxidx]-1].statetype.size(); ++s) {
         fprintf(pState, " %" PRIrealfull "", state[jvtxidx][0][s]);
       }
-      for (idx_t s = 0; s < models[vtxmodidx[jvtxidx]-1].sticktype.size(); ++s) {
+      for (std::size_t s = 0; s < models[vtxmodidx[jvtxidx]-1].sticktype.size(); ++s) {
         fprintf(pState, " %" PRItick "", stick[jvtxidx][0][s]);
       }
       
       // edge state
       rdist[k].nedg += edgmodidx[jvtxidx].size();
       CkAssert(state[jvtxidx].size() == edgmodidx[jvtxidx].size() + 1);
-      for (idx_t j = 0; j < edgmodidx[jvtxidx].size(); ++j) {
+      for (std::size_t j = 0; j < edgmodidx[jvtxidx].size(); ++j) {
         fprintf(pState, " %s", modname[edgmodidx[jvtxidx][j]].c_str());
         rdist[k].nstate += state[jvtxidx][j+1].size();
         rdist[k].nstick += stick[jvtxidx][j+1].size();
         if (edgmodidx[jvtxidx][j] > 0) {
-          for (idx_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].statetype.size(); ++s) {
+          for (std::size_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].statetype.size(); ++s) {
             fprintf(pState, " %" PRIrealfull "", state[jvtxidx][j+1][s]);
           }
-          for (idx_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].sticktype.size(); ++s) {
+          for (std::size_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].sticktype.size(); ++s) {
             fprintf(pState, " %" PRItick "", stick[jvtxidx][j+1][s]);
           }
         }
@@ -316,7 +314,7 @@ void GeNet::Write() {
 
       // adjacency information
       CkAssert(adjcy[jvtxidx].size() == edgmodidx[jvtxidx].size());
-      for (idx_t j = 0; j < adjcy[jvtxidx].size(); ++j) {
+      for (std::size_t j = 0; j < adjcy[jvtxidx].size(); ++j) {
         fprintf(pAdjcy, " %" PRIidx "", adjcy[jvtxidx][j]);
       }
 
@@ -414,7 +412,7 @@ int Main::WriteDist() {
   CkPrintf("  Writing network distribution\n");
   nvtx = nedg = nstate = nstick = 0;
   fprintf(pDist, "%" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx "\n", nvtx, nedg, nstate, nstick);
-  for (idx_t i = 0; i < netdist.size(); ++i) {
+  for (std::size_t i = 0; i < netdist.size(); ++i) {
     nvtx += netdist[i].nvtx;
     nedg += netdist[i].nedg;
     nstate += netdist[i].nstate;

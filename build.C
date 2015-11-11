@@ -32,13 +32,13 @@ void GeNet::Build(mGraph *msg) {
 
   // Vertices
   vertices.resize(msg->nvtx);
-  for (idx_t i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     vertices[i].modidx = msg->vtxmodidx[i];
     vertices[i].order = msg->vtxorder[i];
     norder += vertices[i].order;
     vertices[i].shape = msg->vtxshape[i];
     vertices[i].param.resize(msg->xvtxparam[i+1] - msg->xvtxparam[i]);
-    for (idx_t j = 0; j < vertices[i].param.size(); ++j) {
+    for (std::size_t j = 0; j < vertices[i].param.size(); ++j) {
       vertices[i].param[j] = msg->vtxparam[jvtxparam++];
     }
   }
@@ -52,22 +52,22 @@ void GeNet::Build(mGraph *msg) {
 
   // Edges
   edges.resize(msg->nedg);
-  for (idx_t i = 0; i < edges.size(); ++i) {
+  for (std::size_t i = 0; i < edges.size(); ++i) {
     edges[i].source = msg->edgsource[i];
     edges[i].modidx = msg->edgmodidx[i];
     edges[i].cutoff = msg->edgcutoff[i];
     
     edges[i].target.resize(msg->xedgtarget[i+1] - msg->xedgtarget[i]);
-    for (idx_t j = 0; j < edges[i].target.size(); ++j) {
+    for (std::size_t j = 0; j < edges[i].target.size(); ++j) {
       edges[i].target[j] = msg->edgtarget[jedgtarget++];
     }
     
     edges[i].conntype.resize(msg->xedgconntype[i+1] - msg->xedgconntype[i]);
     edges[i].connparam.resize(msg->xedgconntype[i+1] - msg->xedgconntype[i]);
-    for (idx_t j = 0; j < edges[i].conntype.size(); ++j) {
+    for (std::size_t j = 0; j < edges[i].conntype.size(); ++j) {
       edges[i].conntype[j] = msg->edgconntype[jedgconntype];
       edges[i].connparam[j].resize(msg->medgconnparam[jedgconntype++]);
-      for (idx_t k = 0; k < edges[i].connparam[j].size(); ++k) {
+      for (std::size_t k = 0; k < edges[i].connparam[j].size(); ++k) {
         edges[i].connparam[j][k] = msg->edgconnparam[jedgconnparam++];
       }
     }
@@ -82,7 +82,7 @@ void GeNet::Build(mGraph *msg) {
 
   // Print out some information
   if (datidx == 0) {
-    for (idx_t i = 0; i < vertices.size(); ++i) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
       CkPrintf("Vertex: %" PRIidx "   Order: %" PRIidx"\n", vertices[i].modidx, vertices[i].order);
     }
   }
@@ -96,7 +96,7 @@ void GeNet::Build(mGraph *msg) {
     nordervtx[k].resize(vertices.size());
   }
   idx_t xremvtx = 0;
-  for (idx_t i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     idx_t ndivvtx = (vertices[i].order)/npnet;
     idx_t nremvtx = (vertices[i].order)%npnet;
     for (idx_t k = 0; k < nprt; ++k) {
@@ -112,7 +112,7 @@ void GeNet::Build(mGraph *msg) {
   norderprt.resize(nprt);
   for (idx_t k = 0; k < nprt; ++k) {
     norderprt[k] = 0;
-    for (idx_t i = 0; i < vertices.size(); ++i) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
       norderprt[k] += nordervtx[k][i];
     }
     norderdat += norderprt[k];
@@ -126,7 +126,7 @@ void GeNet::Build(mGraph *msg) {
     orderprt << " " << norderprt[k];
     orderprts.append(orderprt.str());
     orderprts.append(" [");
-    for (idx_t i = 0; i < vertices.size(); ++i) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
       std::ostringstream ordervtx;
       ordervtx << " " << nordervtx[k][i];
       orderprts.append(ordervtx.str());
@@ -145,7 +145,7 @@ void GeNet::Build(mGraph *msg) {
   idx_t jvtxidx = 0;
   for (idx_t k = 0; k < nprt; ++k) {
     // set with modidx
-    for (idx_t i = 0; i < vertices.size(); ++i) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
       for (idx_t j = 0; j < nordervtx[k][i]; ++j) {
         // Set the model index
         vtxmodidx[jvtxidx] = vertices[i].modidx;
@@ -195,7 +195,7 @@ void GeNet::Build(mGraph *msg) {
     rngstate.resize(models[modidx].statetype.size());
     rngstick.resize(models[modidx].sticktype.size());
     // Randomly generate state
-    for (idx_t s = 0; s < models[modidx].statetype.size(); ++s) {
+    for (std::size_t s = 0; s < models[modidx].statetype.size(); ++s) {
       if (models[modidx].statetype[s] == RNGTYPE_CONST) {
         rngstate[s] = rngconst(models[modidx].stateparam[s].data());
       }
@@ -215,7 +215,7 @@ void GeNet::Build(mGraph *msg) {
       }
     }
     // Randomly generate stick
-    for (idx_t s = 0; s < models[modidx].sticktype.size(); ++s) {
+    for (std::size_t s = 0; s < models[modidx].sticktype.size(); ++s) {
       if (models[modidx].sticktype[s] == RNGTYPE_CONST) {
         rngstick[s] = (tick_t)(TICKS_PER_MS * rngconst(models[modidx].stickparam[s].data()));
       }
@@ -562,7 +562,7 @@ mConn* GeNet::BuildPrevConn(idx_t reqidx) {
     mconn->xyz[i*3+2] = xyz[i*3+2];
     // xadj
     mconn->xadj[i+1] = mconn->xadj[i] + adjcyconn[reqidx][i].size();
-    for (idx_t j = 0; j < adjcyconn[reqidx][i].size(); ++j) {
+    for (std::size_t j = 0; j < adjcyconn[reqidx][i].size(); ++j) {
       // adjcy (of next parts)
       mconn->adjcy[jadjcyidx] = adjcyconn[reqidx][i][j];
       // edgmodidx (of next parts)
@@ -626,9 +626,9 @@ mConn* GeNet::BuildNextConn() {
 idx_t GeNet::MakeConnection(idx_t source, idx_t target, real_t dist) {
   // Go through edges to find the right connection
   // TODO: Use an unordered map to do the connection matching
-  for (idx_t i = 0; i < edges.size(); ++i) {
+  for (std::size_t i = 0; i < edges.size(); ++i) {
     if (source == edges[i].source) {
-      for (idx_t j = 0; j < edges[i].target.size(); ++j) {
+      for (std::size_t j = 0; j < edges[i].target.size(); ++j) {
         if (target == edges[i].target[j]) {
           // test for cutoff
           if (dist > edges[i].cutoff) {
@@ -636,7 +636,7 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, real_t dist) {
           }
           // Threshold computation
           real_t thresh = 0.0;
-          for (idx_t k = 0; k < edges[i].conntype.size(); ++k) {
+          for (std::size_t k = 0; k < edges[i].conntype.size(); ++k) {
             if (edges[i].conntype[k] == CONNTYPE_UNIF) {
               thresh += edges[i].connparam[k][0];
             }
@@ -683,7 +683,7 @@ std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
   std::vector<real_t> rngstate;
   rngstate.resize(models[modidx].statetype.size());
   // Randomly generate state
-  for (idx_t j = 0; j < rngstate.size(); ++j) {
+  for (std::size_t j = 0; j < rngstate.size(); ++j) {
     if (models[modidx].statetype[j] == RNGTYPE_CONST) {
       rngstate[j] = rngconst(models[modidx].stateparam[j].data());
     }
@@ -727,7 +727,7 @@ std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist) {
   std::vector<tick_t> rngstick;
   rngstick.resize(models[modidx].sticktype.size());
   // Randomly generate stick
-  for (idx_t j = 0; j < rngstick.size(); ++j) {
+  for (std::size_t j = 0; j < rngstick.size(); ++j) {
     if (models[modidx].sticktype[j] == RNGTYPE_CONST) {
       rngstick[j] = (tick_t)(TICKS_PER_MS * rngconst(models[modidx].stickparam[j].data()));
     }

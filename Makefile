@@ -16,7 +16,7 @@ CFLAGS     = -O3 -Wall
 CHARMFLAGS = -module CkMulticast -language charm++
 PROJFLAGS  = -tracemode projections -tracemode summary
 
-LIB        = 
+LIB        = -std=c++11
 LDLIB      = -lm -lyaml-cpp
 METISLDLIB = -lparmetis -lmetis
 
@@ -41,18 +41,3 @@ $(DECL) $(DEF): $(SRC_CI)
 
 clean:
 	rm -f  $(DECL) $(DEF) $(OBJ) $(OUT) $(PART) charmrun
-
-# OS related
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-  LIB += -std=c++11 -stdlib=libc++ -mmacosx-version-min=10.7
-endif
-
-ifeq ($(UNAME_S),Linux)
-  LIB += -std=c++11
-  # GCC version
-  GCC11 := $(shell expr `gcc -dumpversion | cut -f1-2 -d.` \>= 4.8)
-  ifeq ($(GCC11),1)
-  else
-  endif
-endif

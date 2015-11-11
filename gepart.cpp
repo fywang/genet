@@ -8,6 +8,7 @@
  */
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <random>
 #include <parmetis.h>
@@ -93,7 +94,7 @@ int main(int argc, char ** argv) {
     try {
       filebase = config["filebase"].as<std::string>();
       if (filebase.size() && filebase.size()+16 < FILENAMESIZE) {
-        strncpy(filename, filebase.c_str(), filebase.size());
+        std::strncpy(filename, filebase.c_str(), filebase.size());
         filename[filebase.size()] = '\0';
       }
       else {
@@ -203,7 +204,7 @@ int main(int argc, char ** argv) {
   pAdjcy = fopen(filename,"r");
   sprintf(filename, "%s.coord.%d", filebase.c_str(), datidx);
   pCoord = fopen(filename, "r");
-  if (pAdjcy == NULL | pCoord == NULL) {
+  if (pAdjcy == NULL || pCoord == NULL) {
     printf("Error opening network files on %d\n",datidx);
     MPI_Finalize();
     return 1;
@@ -274,6 +275,12 @@ int main(int argc, char ** argv) {
                                          &ndims, xyz, &ncon, &npnet,
                                          tpwgts, &ubvec, options,
                                          &edgecut, part, &comm);
+  if (metisresult != METIS_OK) {
+    if (datidx == 0) {
+      printf("Error during partitioning\n");
+    }
+  }
+
   // finish timing
   tfinish = MPI_Wtime();
   tfinish -= tstart;

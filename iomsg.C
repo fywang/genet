@@ -35,13 +35,13 @@ mModel* Main::BuildModel() {
   nstateparam = 0;
   nsticktype = 0;
   nstickparam = 0;
-  for (idx_t i = 0; i < models.size(); ++i) {
+  for (std::size_t i = 0; i < models.size(); ++i) {
     nmodname += models[i].modname.size();
     nstatetype += models[i].statetype.size();
-    for (idx_t j = 0; j < models[i].statetype.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].statetype.size(); ++j) {
       nstateparam += models[i].stateparam[j].size();
     }
-    for (idx_t j = 0; j < models[i].sticktype.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].sticktype.size(); ++j) {
       nstickparam += models[i].stickparam[j].size();
     }
   }
@@ -73,30 +73,30 @@ mModel* Main::BuildModel() {
   jstickparam = 0;
 
   // Copy over model information
-  for (idx_t i = 0; i < models.size(); ++i) {
+  for (std::size_t i = 0; i < models.size(); ++i) {
     // type
     mmodel->type[i] = models[i].type;
     // xmodname
     mmodel->xmodname[i+1] = mmodel->xmodname[i] + models[i].modname.size();
-    for (idx_t j = 0; j < models[i].modname.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].modname.size(); ++j) {
       // modname
       mmodel->modname[mmodel->xmodname[i] + j] = models[i].modname[j];
     }
     // xstatetype
     mmodel->xstatetype[i+1] = mmodel->xstatetype[i] + models[i].statetype.size();
-    for (idx_t j = 0; j < models[i].statetype.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].statetype.size(); ++j) {
       // statetype
       mmodel->statetype[mmodel->xstatetype[i]+j] = models[i].statetype[j];
-      for (idx_t s = 0; s < models[i].stateparam[j].size(); ++s) {
+      for (std::size_t s = 0; s < models[i].stateparam[j].size(); ++s) {
         mmodel->stateparam[jstateparam++] = models[i].stateparam[j][s];
       }
     }
     // xsticktype
     mmodel->xsticktype[i+1] = mmodel->xsticktype[i] + models[i].sticktype.size();
-    for (idx_t j = 0; j < models[i].sticktype.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].sticktype.size(); ++j) {
       // sticktype
       mmodel->sticktype[mmodel->xsticktype[i]+j] = models[i].sticktype[j];
-      for (idx_t s = 0; s < models[i].stickparam[j].size(); ++s) {
+      for (std::size_t s = 0; s < models[i].stickparam[j].size(); ++s) {
         mmodel->stickparam[jstickparam++] = models[i].stickparam[j][s];
       }
     }
@@ -124,16 +124,16 @@ mGraph* Main::BuildGraph() {
 
   // get total size of param
   nvtxparam = 0;
-  for (idx_t i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     nvtxparam += vertices[i].param.size();
   }
   nedgtarget = 0;
   nedgconntype = 0;
   nedgconnparam = 0;
-  for (idx_t i = 0; i < edges.size(); ++i) {
+  for (std::size_t i = 0; i < edges.size(); ++i) {
     nedgtarget += edges[i].target.size();
     nedgconntype += edges[i].conntype.size();
-    for (idx_t j = 0; j < edges[i].conntype.size(); ++j) {
+    for (std::size_t j = 0; j < edges[i].conntype.size(); ++j) {
       nedgconnparam += edges[i].connparam[j].size();
     }
   }
@@ -170,12 +170,12 @@ mGraph* Main::BuildGraph() {
   jvtxparam = 0;
 
   // Vertices
-  for (idx_t i = 0; i < vertices.size(); ++i) {
+  for (std::size_t i = 0; i < vertices.size(); ++i) {
     mgraph->vtxmodidx[i] = vertices[i].modidx;
     mgraph->vtxorder[i] = vertices[i].order;
     mgraph->vtxshape[i] = vertices[i].shape;
     mgraph->xvtxparam[i+1] = mgraph->xvtxparam[i] + vertices[i].param.size();
-    for (idx_t j = 0; j < vertices[i].param.size(); ++j) {
+    for (std::size_t j = 0; j < vertices[i].param.size(); ++j) {
       mgraph->vtxparam[jvtxparam++] = vertices[i].param[j];
     }
   }
@@ -194,21 +194,21 @@ mGraph* Main::BuildGraph() {
   msgSize[11] = nedgconntype;     // edgconntype
   msgSize[12] = nedgconnparam;    // edgconnparam
   // Edges
-  for (idx_t i = 0; i < edges.size(); ++i) {
+  for (std::size_t i = 0; i < edges.size(); ++i) {
     mgraph->edgsource[i] = edges[i].source;
     mgraph->edgmodidx[i] = edges[i].modidx;
     mgraph->edgcutoff[i] = edges[i].cutoff;
 
     mgraph->xedgtarget[i+1] = mgraph->xedgtarget[i] + edges[i].target.size();
-    for (idx_t j = 0; j < edges[i].target.size(); ++j) {
+    for (std::size_t j = 0; j < edges[i].target.size(); ++j) {
       mgraph->edgtarget[jedgtarget++] = edges[i].target[j];
     }
 
     mgraph->xedgconntype[i+1] = mgraph->xedgconntype[i] + edges[i].conntype.size();
-    for (idx_t j = 0; j < edges[i].conntype.size(); ++j) {
+    for (std::size_t j = 0; j < edges[i].conntype.size(); ++j) {
       mgraph->edgconntype[jedgconntype] = edges[i].conntype[j];
       mgraph->medgconnparam[jedgconntype++] = edges[i].connparam[j].size();
-      for (idx_t k = 0; k < edges[i].connparam[j].size(); ++k) {
+      for (std::size_t k = 0; k < edges[i].connparam[j].size(); ++k) {
         mgraph->edgconnparam[jedgconnparam++] = edges[i].connparam[j][k];
       }
     }

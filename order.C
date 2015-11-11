@@ -34,13 +34,13 @@ void GeNet::ScatterPart() {
       idx_t nedgidx = 0;
       idx_t nstate = 0;
       idx_t nstick = 0;
-      for (idx_t i = 0; i < vtxidxpart[prtidx].size(); ++i) {
+      for (std::size_t i = 0; i < vtxidxpart[prtidx].size(); ++i) {
         nedgidx += adjcypart[prtidx][i].size();
       }
-      for (idx_t i = 0; i < statepart[prtidx].size(); ++i) {
+      for (std::size_t i = 0; i < statepart[prtidx].size(); ++i) {
         nstate += statepart[prtidx][i].size();
       }
-      for (idx_t i = 0; i < stickpart[prtidx].size(); ++i) {
+      for (std::size_t i = 0; i < stickpart[prtidx].size(); ++i) {
         nstick += stickpart[prtidx][i].size();
       }
 
@@ -70,7 +70,7 @@ void GeNet::ScatterPart() {
       mpart->xadj[0] = 0;
 
 
-      for (idx_t i = 0; i < vtxidxpart[prtidx].size(); ++i) {
+      for (std::size_t i = 0; i < vtxidxpart[prtidx].size(); ++i) {
         // vtxidx
         mpart->vtxidx[i] = vtxidxpart[prtidx][i];
         // vtxmodidx
@@ -81,7 +81,7 @@ void GeNet::ScatterPart() {
         mpart->xyz[i*3+2] = xyzpart[prtidx][i*3+2];
         // xadj
         mpart->xadj[i+1] = mpart->xadj[i] + adjcypart[prtidx][i].size();
-        for (idx_t j = 0; j < adjcypart[prtidx][i].size(); ++j) {
+        for (std::size_t j = 0; j < adjcypart[prtidx][i].size(); ++j) {
           // adjcy
           mpart->adjcy[jedgidx] = adjcypart[prtidx][i][j];
           // edgmodidx
@@ -89,11 +89,11 @@ void GeNet::ScatterPart() {
         }
       }
       CkAssert(jedgidx == nedgidx);
-      for (idx_t i = 0; i < statepart[prtidx].size(); ++i) {
-        for (idx_t s = 0; s < statepart[prtidx][i].size(); ++s) {
+      for (std::size_t i = 0; i < statepart[prtidx].size(); ++i) {
+        for (std::size_t s = 0; s < statepart[prtidx][i].size(); ++s) {
           mpart->state[jstate++] = statepart[prtidx][i][s];
         }
-        for (idx_t s = 0; s < stickpart[prtidx][i].size(); ++s) {
+        for (std::size_t s = 0; s < stickpart[prtidx][i].size(); ++s) {
           mpart->stick[jstick++] = stickpart[prtidx][i][s];
         }
       }
@@ -144,10 +144,10 @@ void GeNet::GatherPart(mPart *msg) {
     CkAssert(vtxorder[prtidx][xvtx+i].modidx > 0);
     stateorder[prtidx][xvtx+i][0].resize(models[vtxorder[prtidx][xvtx+i].modidx-1].statetype.size());
     stickorder[prtidx][xvtx+i][0].resize(models[vtxorder[prtidx][xvtx+i].modidx-1].sticktype.size());
-    for(idx_t s = 0; s < stateorder[prtidx][xvtx+i][0].size(); ++s) {
+    for(std::size_t s = 0; s < stateorder[prtidx][xvtx+i][0].size(); ++s) {
       stateorder[prtidx][xvtx+i][0][s] = msg->state[jstate++];
     }
-    for(idx_t s = 0; s < stickorder[prtidx][xvtx+i][0].size(); ++s) {
+    for(std::size_t s = 0; s < stickorder[prtidx][xvtx+i][0].size(); ++s) {
       stickorder[prtidx][xvtx+i][0][s] = msg->stick[jstick++];
     }
 
@@ -167,10 +167,10 @@ void GeNet::GatherPart(mPart *msg) {
       if (edgmodidxorder[prtidx][xvtx+i][xedg+j] > 0) {
         stateorder[prtidx][xvtx+i][xedg+j+1].resize(models[edgmodidxorder[prtidx][xvtx+i][xedg+j]-1].statetype.size());
         stickorder[prtidx][xvtx+i][xedg+j+1].resize(models[edgmodidxorder[prtidx][xvtx+i][xedg+j]-1].sticktype.size());
-        for(idx_t s = 0; s < stateorder[prtidx][xvtx+i][xedg+j+1].size(); ++s) {
+        for(std::size_t s = 0; s < stateorder[prtidx][xvtx+i][xedg+j+1].size(); ++s) {
           stateorder[prtidx][xvtx+i][xedg+j+1][s] = msg->state[jstate++];
         }
-        for(idx_t s = 0; s < stickorder[prtidx][xvtx+i][xedg+j+1].size(); ++s) {
+        for(std::size_t s = 0; s < stickorder[prtidx][xvtx+i][xedg+j+1].size(); ++s) {
           stickorder[prtidx][xvtx+i][xedg+j+1][s] = msg->stick[jstick++];
         }
       }
@@ -274,7 +274,7 @@ void GeNet::Reorder(mOrder *msg) {
   for (idx_t jprt = 0; jprt < nprt; ++jprt) {
     for (idx_t i = 0; i < norderprt[jprt]; ++i) {
       edgorder.clear();
-      for (idx_t j = 0; j < adjcyorder[jprt][i].size(); ++j) {
+      for (std::size_t j = 0; j < adjcyorder[jprt][i].size(); ++j) {
         if (oldtonew.find(adjcyorder[jprt][i][j]) == oldtonew.end()) {
           continue;
         }
@@ -289,7 +289,7 @@ void GeNet::Reorder(mOrder *msg) {
       // sort newly added indices
       std::sort(edgorder.begin(), edgorder.end());
       // add indices to data structures
-      for (idx_t j = 0; j < edgorder.size(); ++j) {
+      for (std::size_t j = 0; j < edgorder.size(); ++j) {
         adjcy[xvtx+i].push_back(edgorder[j].edgidx);
         edgmodidx[xvtx+i].push_back(edgorder[j].modidx);
         state[xvtx+i].push_back(edgorder[j].state);

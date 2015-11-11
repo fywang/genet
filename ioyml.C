@@ -115,7 +115,7 @@ int Main::ReadModel() {
   graphtype[GRAPHTYPE_EDG] = std::string("edge");
 
   // Get model data
-  for (idx_t i = 0; i < modfile.size(); ++i) {
+  for (std::size_t i = 0; i < modfile.size(); ++i) {
     std::string type;
 
     try {
@@ -155,7 +155,7 @@ int Main::ReadModel() {
     // Count sticks
     idx_t nstate = 0;
     idx_t nstick = 0;
-    for (idx_t j = 0; j < state.size(); ++j) {
+    for (std::size_t j = 0; j < state.size(); ++j) {
       std::string reptype;
       try {
         // reptype
@@ -180,7 +180,7 @@ int Main::ReadModel() {
     idx_t jstick = 0;
 
     // loop through the states
-    for (idx_t j = 0; j < state.size(); ++j) {
+    for (std::size_t j = 0; j < state.size(); ++j) {
       std::string rngtype;
       std::string reptype;
       try {
@@ -469,7 +469,7 @@ int Main::ReadGraph() {
   vertices.resize(vertex.size());
 
   // loop through the vertices
-  for (idx_t i = 0; i < vertex.size(); ++i) {
+  for (std::size_t i = 0; i < vertex.size(); ++i) {
     std::string name;
     try {
       // modname
@@ -539,7 +539,7 @@ int Main::ReadGraph() {
   edges.resize(edge.size());
 
   // loop through the edges
-  for (idx_t i = 0; i < edges.size(); ++i) {
+  for (std::size_t i = 0; i < edges.size(); ++i) {
     std::string name;
     std::vector<std::string> names;
     try {
@@ -563,7 +563,7 @@ int Main::ReadGraph() {
       CkPrintf("  edge targets: %s\n", e.what());
       return 1;
     }
-    for (idx_t j = 0; j < names.size(); ++j) {
+    for (std::size_t j = 0; j < names.size(); ++j) {
       if (modmap.find(names[j]) == modmap.end()) {
         CkPrintf("  error: model %s not defined\n", name.c_str());
         return 1;
@@ -605,7 +605,7 @@ int Main::ReadGraph() {
     edges[i].connparam.resize(conn.size());
 
     // loop through the connections
-    for (idx_t j = 0; j < conn.size(); ++j) {
+    for (std::size_t j = 0; j < conn.size(); ++j) {
       std::string conntype;
       try {
         // conntype
@@ -664,8 +664,8 @@ int Main::ReadGraph() {
   // TODO: Enable multiple edges between vertices one day
   std::vector<std::vector<idx_t>> connections;
   connections.resize(models.size()+1);
-  for (idx_t i = 0; i < edges.size(); ++i) {
-    for (idx_t j = 0; j < edges[i].target.size(); ++j) {
+  for (std::size_t i = 0; i < edges.size(); ++i) {
+    for (std::size_t j = 0; j < edges[i].target.size(); ++j) {
       // add source target pairs
       connections[edges[i].source].push_back(edges[i].target[j]);
       // Sanity check that there are no 'none' sources or targets
@@ -674,9 +674,9 @@ int Main::ReadGraph() {
     }
   }
   // check for duplicates (connections[0] is 'none' model)
-  for (idx_t i = 1; i < connections.size(); ++i) {
+  for (std::size_t i = 1; i < connections.size(); ++i) {
     std::sort(connections[i].begin(), connections[i].end());
-    for (idx_t j = 1; j < connections[i].size(); ++j) {
+    for (std::size_t j = 1; j < connections[i].size(); ++j) {
       if (connections[i][j] == connections[i][j-1]) {
         CkPrintf("  error: multiple connection types between vertices\n"
                  "         %s to %s not allowed (yet)\n",

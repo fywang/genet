@@ -85,7 +85,7 @@ Main::Main(CkArgMsg* msg) {
   }
   
   // Print out model information
-  for (idx_t i = 0; i < models.size(); ++i) {
+  for (std::size_t i = 0; i < models.size(); ++i) {
     CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
         i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
   }
@@ -181,7 +181,7 @@ void Main::Halt(CkReductionMsg *msg) {
  
   // Save network part distribution to local
   netdist.clear();
-  for (int i = 0; i < (msg->getSize())/sizeof(dist_t); ++i) {
+  for (std::size_t i = 0; i < (msg->getSize())/sizeof(dist_t); ++i) {
     netdist.push_back(*((dist_t *)msg->getData()+i));
   }
   delete msg;
@@ -237,7 +237,7 @@ GeNet::GeNet(mModel *msg) {
   modmap[modname[0]] = 0;
   // Read in models
   models.resize(msg->nmodel);
-  for (idx_t i = 0; i < models.size(); ++i) {
+  for (std::size_t i = 0; i < models.size(); ++i) {
     // modname
     models[i].modname = std::string(msg->modname + msg->xmodname[i], msg->modname + msg->xmodname[i+1]);
     modname[i+1] = models[i].modname;
@@ -247,7 +247,7 @@ GeNet::GeNet(mModel *msg) {
     // prepare containers
     models[i].statetype.resize(msg->xstatetype[i+1] - msg->xstatetype[i]);
     models[i].stateparam.resize(msg->xstatetype[i+1] - msg->xstatetype[i]);
-    for (idx_t j = 0; j < models[i].statetype.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].statetype.size(); ++j) {
       // statetype
       models[i].statetype[j] = msg->statetype[msg->xstatetype[i] + j];
       switch (models[i].statetype[j]) {
@@ -273,14 +273,14 @@ GeNet::GeNet(mModel *msg) {
           CkPrintf("Error: unknown statetype\n");
           break;
       }
-      for (idx_t s = 0; s < models[i].stateparam[j].size(); ++s) {
+      for (std::size_t s = 0; s < models[i].stateparam[j].size(); ++s) {
         models[i].stateparam[j][s] = msg->stateparam[jstateparam++];
       }
     }
     // prepare containers
     models[i].sticktype.resize(msg->xsticktype[i+1] - msg->xsticktype[i]);
     models[i].stickparam.resize(msg->xsticktype[i+1] - msg->xsticktype[i]);
-    for (idx_t j = 0; j < models[i].sticktype.size(); ++j) {
+    for (std::size_t j = 0; j < models[i].sticktype.size(); ++j) {
       // sticktype
       models[i].sticktype[j] = msg->sticktype[msg->xsticktype[i] + j];
       switch (models[i].sticktype[j]) {
@@ -306,7 +306,7 @@ GeNet::GeNet(mModel *msg) {
           CkPrintf("Error: unknown statetype\n");
           break;
       }
-      for (idx_t s = 0; s < models[i].stickparam[j].size(); ++s) {
+      for (std::size_t s = 0; s < models[i].stickparam[j].size(); ++s) {
         models[i].stickparam[j][s] = msg->stickparam[jstickparam++];
       }
     }
