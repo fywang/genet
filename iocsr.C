@@ -218,6 +218,7 @@ void GeNet::Read(mMetis *msg) {
 
   // Prepare for partitioning
   cpdat = 0;
+  cpprt = 0;
   norderdat = 0;
   vtxorder.resize(nprt);
   xyzorder.resize(nprt);

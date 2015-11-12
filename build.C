@@ -250,7 +250,6 @@ void GeNet::Build(mGraph *msg) {
   // Only need to worry about future edges
   adjcyconn.clear();
   adjcyconn.resize(npdat);
-  adjcyreq.clear();
   edgmodidxconn.clear();
   edgmodidxconn.resize(npdat);
 
@@ -500,7 +499,7 @@ void GeNet::ConnRequest(idx_t reqidx) {
   // send data adjacency and vertex info to requesting part
   if (reqidx > datidx) {
     // check if adjcy is built
-    if (adjcyconn[reqidx].size()) {
+    if (adjcyconn.size() && adjcyconn[reqidx].size()) {
       mConn *mconn = BuildPrevConn(reqidx);
       thisProxy(reqidx).Connect(mconn);
     }

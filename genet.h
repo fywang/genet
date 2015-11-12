@@ -320,6 +320,7 @@ class GeNet : public CBase_GeNet {
     void Read(mMetis *msg);
     void ScatterPart();
     void GatherPart(mPart *msg);
+    void Order(mOrder *msg);
     void Reorder(mOrder *msg);
     mOrder* BuildOrder();
 
@@ -456,9 +457,10 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<std::vector<idx_t>>> edgmodidxorder; // edge models by vertex
     std::vector<std::vector<std::vector<std::vector<real_t>>>> stateorder; // state by vertex
     std::vector<std::vector<std::vector<std::vector<tick_t>>>> stickorder; // stick by vertex
+    std::list<mOrder *> ordering;
     /* Bookkeeping */
     idx_t datidx;
-    idx_t cpdat;
+    idx_t cpdat, cpprt;
     idx_t nprt, xprt;
     idx_t norder; // total order
     idx_t norderdat; // order per data

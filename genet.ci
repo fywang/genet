@@ -102,7 +102,7 @@ mainmodule genet {
     entry void SetPartition();
     entry void ScatterPart();
     entry void GatherPart(mPart *msg);
-    entry void Reorder(mOrder *msg);
+    entry void Order(mOrder *msg);
     entry void Write(const CkCallback &cb);
   };
 };

@@ -38,10 +38,6 @@ int main(int argc, char ** argv) {
   CharmLibInit(comm, argc, argv);
   MPI_Barrier(comm);
 
-  if (datidx == 0) {
-    printf("Entering main control loop.\n");
-  }
-
   // Control Loop
   doneflag = false;
   partflag = false;
@@ -58,10 +54,6 @@ int main(int argc, char ** argv) {
     MPI_Barrier(comm);
   }
   
-  if (datidx == 0) {
-    printf("Exiting main control loop.\n");
-  }
-
   // Finalize Charm++
   CharmLibExit();
   // Finalize MPI

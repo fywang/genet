@@ -184,7 +184,7 @@ void GeNet::GatherPart(mPart *msg) {
 
   // When all parts are gathered from all other data,
   // Perform reordering of vertex indices and start reordering
-  if (++cpdat == npdat*nprt) {
+  if (++cpprt == npdat*nprt) {
     // cleanup finished data structures?
     vtxdistmetis.clear();
     edgdistmetis.clear();
@@ -239,24 +239,62 @@ void GeNet::GatherPart(mPart *msg) {
       xvtx += norderprt[jprt];
     }
 
-    // Prepare for reordering
-    cpdat = 0;
-    
+    // Take care of any ordering that may have come in
+    // Go through ordering list
+    for (std::list<mOrder *>::iterator iordidx = ordering.begin(); iordidx != ordering.end(); ++iordidx) {
+      if ((*iordidx)->datidx == cpdat) {
+        // Perform reordering
+        Reorder((*iordidx));
+        // Move to next part
+        ++cpdat;
+        // Erase element from list
+        iordidx = ordering.erase(iordidx);
+      }
+    }
+
     // Broadcast ordering in order of file
     if (cpdat == datidx) {
       mOrder *morder = BuildOrder();
-      thisProxy.Reorder(morder);
+      thisProxy.Order(morder);
     }
   }
 }
 
 
-// Reorder indices given the reordering
+// Handle ordering messages
+//
+void GeNet::Order(mOrder *msg) {
+  // Save message for processing
+  ordering.push_back(msg);
+
+  if (adjcy.size()) {
+    // Go through ordering list
+    for (std::list<mOrder *>::iterator iordidx = ordering.begin(); iordidx != ordering.end(); ++iordidx) {
+      if ((*iordidx)->datidx == cpdat) {
+        // Perform reordering
+        Reorder((*iordidx));
+        // Move to next part
+        ++cpdat;
+        // Erase element from list
+        iordidx = ordering.erase(iordidx);
+      }
+    }
+  }
+
+  // return control to main when done
+  if (cpdat == npdat) {
+    contribute(0, NULL, CkReduction::nop);
+  }
+  // Broadcast ordering in order of file
+  else if (cpdat == datidx) {
+    mOrder *morder = BuildOrder();
+    thisProxy.Order(morder);
+  }
+}
+
+// Reordering indices based on given ordering
 //
 void GeNet::Reorder(mOrder *msg) {
-  // Sanity check
-  CkAssert(msg->datidx == cpdat);
-
   // Add to vtxdist
   vtxdist[cpdat+1] = vtxdist[cpdat] + msg->nvtx;
 
@@ -297,19 +335,6 @@ void GeNet::Reorder(mOrder *msg) {
       }
     }
     xvtx += norderprt[jprt];
-  }
-
-
-  // Move to next part
-  ++cpdat;
-  // return control to main when done
-  if (cpdat == npdat) {
-    contribute(0, NULL, CkReduction::nop);
-  }
-  // Broadcast ordering in order of file
-  else if (cpdat == datidx) {
-    mOrder *morder = BuildOrder();
-    thisProxy.Reorder(morder);
   }
 }
 

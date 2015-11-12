@@ -368,6 +368,10 @@ GeNet::GeNet(mModel *msg) {
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   CkPrintf("GaNet PE: %d   MPI: %d/%d\n", datidx, world_rank, world_size);
+  
+  // Initialize coordination lists
+  adjcyreq.clear();
+  ordering.clear();
 
   // return control to main
   contribute(0, NULL, CkReduction::nop);
