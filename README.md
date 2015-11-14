@@ -40,13 +40,10 @@
     3. `order` reorders the network based on partitioning (requires partitioning)
 
 # Compiling on OSX
-  For the OSX compilation, you'll want to have XCode installed.
-
-  For some of the dependencies, you'll want to get them from Homebrew (http://brew.sh/), e.g.:
-  * `brew install mpich2`
-  * `brew install yaml-cpp`
-
-  For METIS and ParMETIS, use the versions from the Karypis lab page (make sure you have MPI installed before trying to install ParMETIS)
-
-  For Charm++, to enable thread local storage for the installation on OSX (needed for the ParMETIS MPI interoperation), go to `$CHARMDIR/src/arch/mpi-darwin-x86_64/conv_mach.sh`
-  * Set `MACOSX_DEPLOYMENT_TARGET=10.7`
+  1. For the OSX compilation, you'll want to have XCode installed.
+  2. For some of the dependencies, you'll want to get them from Homebrew (http://brew.sh/), e.g.:
+    - `brew install mpich2`
+    - `brew install yaml-cpp`
+  3. For METIS and ParMETIS, use the versions from the Karypis lab page (make sure you have MPI installed before trying to install ParMETIS)
+  4. For Charm++, to enable thread local storage for the installation on OSX (needed for the ParMETIS MPI interoperation), go to `$CHARMDIR/src/arch/mpi-darwin-x86_64/conv_mach.sh`
+    - Set `MACOSX_DEPLOYMENT_TARGET=10.7`
