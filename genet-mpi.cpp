@@ -28,15 +28,27 @@ int main(int argc, char ** argv) {
   int npdat, datidx;
   MPI_Comm comm;
   
-  
   // Initialize MPI
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &datidx);
   MPI_Comm_size(MPI_COMM_WORLD, &npdat);
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
   // Initialize Charm++
+  doneflag = true;
   CharmLibInit(comm, argc, argv);
   MPI_Barrier(comm);
+
+  // Exit if not initialized
+  if (doneflag) {
+    // Finalize Charm++
+    CharmLibExit();
+    // Finalize MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+
+    // exit
+    return 0;
+  }
 
   // Control Loop
   doneflag = false;

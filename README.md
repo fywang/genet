@@ -5,7 +5,7 @@
   Model specification using YAML
 
 # Dependencies
-  * C++11 (gcc 4.8 or higher)
+  * C++11 (e.g. gcc-4.8)
   * MPI (e.g. mpich-3.1.4)
   * Charm++ (e.g. charm-6.6.1)
   * YAML-cpp (YAML 1.2 spec)
@@ -13,7 +13,7 @@
   * ParMETIS (parmetis-4.0.3)
 
 # Settings
-  In `metis.h` (for METIS and ParMETIS):
+  In `include/metis.h` (for METIS and ParMETIS):
   - `IDXTYPEWIDTH 64`
   - `REALTYPEWIDTH 64`
 
@@ -25,7 +25,8 @@
 # Building genet
   * `make`
 
-# Configuring network (`config.yml`)
+# Configuring network
+  - Default config file is `config.yml`
   - `npdat` is the number of processors the network data will be stored to
   - `npnet` is the number of partitions the network will be split into
   - `filebase` is the location of where to read/write the files for the network
@@ -39,22 +40,13 @@
     3. `order` reorders the network based on partitioning (requires partitioning)
 
 # Compiling on OSX
-  Note: if you run into an error about thread local variables while compiling, the culprit is likely because XCode's gcc versions aren't as up to date on these things as one might like. Make sure that the dependencies being compiled are using the right compilers (i.e. the Homebrew ones)
-  
-  Solution: Install homebrew and compilation tools
-  1. `brew tap homebrew/versions`
-  2. `brew install gcc48`
-  3. make sure it's the 'default' gcc version
-    1. update `.bash_profile` and set:
-      - `HOMEBREW_CC=gcc-4.8`
-      - `HOMEBREW_CXX=g++-4.8`
-    2. some additional symlinking may be required (e.g. `ln -s g++-4.8 g++`)
-    3. check by running `gcc --version`
-  4. `brew install mpich2 --build-from-source`
-  5. `brew install yaml-cpp --build-from-source`
-    - because of the boost dependency, it may be quicker to:
-      1. `brew install yaml-cpp`
-      2. `brew reinstall yaml-cpp --build-from-source`
-  6. install metis and parmetis (from Karypis lab page) using gcc-4.8 too
-  7. install charm++ with gcc-4.8 (as above)
+  For the OSX compilation, you'll want to have XCode installed.
 
+  For some of the dependencies, you'll want to get them from Homebrew (http://brew.sh/), e.g.:
+  * `brew install mpich2`
+  * `brew install yaml-cpp`
+
+  For METIS and ParMETIS, use the versions from the Karypis lab page (make sure you have MPI installed before trying to install ParMETIS)
+
+  For Charm++, to enable thread local storage for the installation on OSX (needed for the ParMETIS MPI interoperation), go to `$CHARMDIR/src/arch/mpi-darwin-x86_64/conv_mach.sh`
+  * Set `MACOSX_DEPLOYMENT_TARGET=10.7`

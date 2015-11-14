@@ -47,3 +47,9 @@ $(DECL) $(DEF): $(SRC_CI)
 
 clean:
 	rm -f  $(DECL) $(DEF) $(OBJ) $(OBJ_CPP) $(MOD) $(OUT) charmrun
+
+# OS related
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+  LIB += -stdlib=libc++ -mmacosx-version-min=10.7
+endif

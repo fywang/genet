@@ -27,6 +27,9 @@ Main::Main(CkArgMsg* msg) {
   // Display title
   CkPrintf("Generate Network for STACS (genet)\n");
 
+  // MPI Interoperate bookkeeping kludge
+  bool initok = true;
+
   // Command line arguments
   std::string configfile;
   if (msg->argc < 2) {
@@ -49,83 +52,103 @@ Main::Main(CkArgMsg* msg) {
     if (mode != "build" && mode != "part" && mode != "order") {
       CkPrintf("Error: mode %s not valid\n"
                "       valid modes: build, order\n", mode.c_str());
-      CkExit();
+      //CkExit();
+      initok = false;
     }
   }
   else {
     CkPrintf("Usage: [config file] [mode]\n");
-    CkExit();
+    //CkExit();
+    initok = false;
   }
   delete msg;
 
-  // Parsing config
-  if (ParseConfig(configfile)) {
-    CkPrintf("Error loading config...\n");
-    CkExit();
+  if (initok) {
+    // Parsing config
+    if (ParseConfig(configfile)) {
+      CkPrintf("Error loading config...\n");
+      //CkExit();
+      initok = false;
+    }
   }
 
-  // Basic error check
-  if (npdat != CkNumPes()) {
-    CkPrintf("Error: npdat (%" PRIidx ") does not match CkNumPes (%d)\n"
-             "       Use '+p%" PRIidx "' to set %" PRIidx " PEs in Charm++\n",
-             npdat, CkNumPes(), npdat, npdat);
-    CkExit();
-  }
-  
-  // Display configuration information
-  CkPrintf("Loaded config from %s\n"
-           "  Data Files (npdat):     %" PRIidx "\n"
-           "  Network Parts (npnet):  %" PRIidx "\n",
-           configfile.c_str(), npdat, npnet);
-
-  CkPrintf("Initializing models\n");
-  // Read model information
-  if (ReadModel()) {
-    CkPrintf("Error loading models...\n");
-    CkExit();
-  }
-  
-  // Print out model information
-  for (std::size_t i = 0; i < models.size(); ++i) {
-    CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
-        i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
+  if (initok) {
+    // Basic error check
+    if (npdat != CkNumPes()) {
+      CkPrintf("Error: npdat (%" PRIidx ") does not match CkNumPes (%d)\n"
+               "       Use '+p%" PRIidx "' to set %" PRIidx " PEs in Charm++\n",
+               npdat, CkNumPes(), npdat, npdat);
+      //CkExit();
+      initok = false;
+    }
   }
 
-  // Set up control flags
+  if (initok) {
+    // Display configuration information
+    CkPrintf("Loaded config from %s\n"
+             "  Data Files (npdat):     %" PRIidx "\n"
+             "  Network Parts (npnet):  %" PRIidx "\n",
+             configfile.c_str(), npdat, npnet);
+
+    CkPrintf("Initializing models\n");
+  }
+
+  if (initok) {
+    // Read model information
+    if (ReadModel()) {
+      CkPrintf("Error loading models...\n");
+      //CkExit();
+      initok = false;
+    }
+  }
+
+  if (initok) {
+    // Print out model information
+    for (std::size_t i = 0; i < models.size(); ++i) {
+      CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
+               i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
+    }
+
+    // Set up control flags
     buildflag = true;
     partsflag = true;
     metisflag = true;
     orderflag = true;
     writeflag = true;
-  if (mode == "build") {
-    partsflag = false;
-    metisflag = false;
-    orderflag = false;
-  }
-  else if (mode == "part") {
-    buildflag = false;
-    metisflag = false;
-    orderflag = false;
-  }
-  else if (mode == "order") {
-    buildflag = false;
-    partsflag = false;
-  }
-  // MPI Glue
-  mainProxy = thisProxy;
+    if (mode == "build") {
+      partsflag = false;
+      metisflag = false;
+      orderflag = false;
+    }
+    else if (mode == "part") {
+      buildflag = false;
+      metisflag = false;
+      orderflag = false;
+    }
+    else if (mode == "order") {
+      buildflag = false;
+      partsflag = false;
+    }
+    // MPI Glue
+    mainProxy = thisProxy;
 
-  // Build model message
-  mModel *mmodel = BuildModel();
-  
-  // Set Round Robin Mapping
-  CkArrayOptions opts(npdat);
-  CProxy_RRMap rrMap = CProxy_RRMap::ckNew();
-  opts.setMap(rrMap);
+    // Build model message
+    mModel *mmodel = BuildModel();
 
-  // Create chare array
-  CkCallback *cb = new CkCallback(CkReductionTarget(Main, ReturnControl), thisProxy);
-  genet = CProxy_GeNet::ckNew(mmodel, opts);
-  genet.ckSetReductionClient(cb);
+    // Set Round Robin Mapping
+    CkArrayOptions opts(npdat);
+    CProxy_RRMap rrMap = CProxy_RRMap::ckNew();
+    opts.setMap(rrMap);
+
+    // Create chare array
+    CkCallback *cb = new CkCallback(CkReductionTarget(Main, ReturnControl), thisProxy);
+    genet = CProxy_GeNet::ckNew(mmodel, opts);
+    genet.ckSetReductionClient(cb);
+  }
+  else {
+    // Initialization not okay
+    CkExit();
+  }
 }
 
 // Main migration
@@ -373,6 +396,8 @@ GeNet::GeNet(mModel *msg) {
   adjcyreq.clear();
   ordering.clear();
 
+  // Everything initialized correctly
+  GeNet_UnSetDoneFlag();
   // return control to main
   contribute(0, NULL, CkReduction::nop);
 }
