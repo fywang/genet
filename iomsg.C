@@ -38,6 +38,7 @@ mModel* Main::BuildModel() {
   for (std::size_t i = 0; i < models.size(); ++i) {
     nmodname += models[i].modname.size();
     nstatetype += models[i].statetype.size();
+    nsticktype += models[i].sticktype.size();
     for (std::size_t j = 0; j < models[i].statetype.size(); ++j) {
       nstateparam += models[i].stateparam[j].size();
     }

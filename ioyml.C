@@ -222,7 +222,7 @@ int Main::ReadModel() {
           models[i].stateparam[jstate].resize(RNGPARAM_CONST);
           try {
             // value
-            models[i].stateparam[jstick][0] = state[j]["value"].as<real_t>();
+            models[i].stateparam[jstate][0] = state[j]["value"].as<real_t>();
           } catch (YAML::RepresentationException& e) {
             CkPrintf("  state constant value: %s\n", e.what());
             return 1;
