@@ -69,6 +69,8 @@
 #define CONNPARAM_UNIF  1
 #define CONNPARAM_SIG   3
 
+#define EVENT_SPIKE     0
+
 
 /**************************************************************************
 * Charm++ Messages
@@ -142,7 +144,7 @@ class mMetis : public CMessage_mMetis {
     idx_t *edgdist; // number of edges in data
 };
   
-#define MSG_Part 8
+#define MSG_Part 13
 class mPart : public CMessage_mPart {
   public:
     idx_t *vtxidx;
@@ -153,11 +155,17 @@ class mPart : public CMessage_mPart {
     idx_t *edgmodidx;
     real_t *state;
     tick_t *stick;
+    idx_t *xevent;
+    tick_t *diffuse;
+    idx_t *target;
+    idx_t *type;
+    real_t *data;
     idx_t datidx;
     idx_t prtidx;
     idx_t nvtx;
     idx_t nstate;
     idx_t nstick;
+    idx_t nevent;
 };
   
 #define MSG_Order 2
@@ -214,9 +222,23 @@ struct dist_t {
   idx_t nedg;
   idx_t nstate;
   idx_t nstick;
+  idx_t nevent;
 
   bool operator<(const dist_t& dist) const {
     return prtidx < dist.prtidx;
+  }
+};
+
+// Events
+//
+struct event_t {
+  tick_t diffuse;
+  idx_t target;
+  idx_t type;
+  real_t data;
+  
+  bool operator<(const event_t& event) const {
+    return diffuse < event.diffuse;
   }
 };
 
@@ -238,6 +260,7 @@ struct edgorder_t {
   idx_t modidx;
   std::vector<real_t> state;
   std::vector<tick_t> stick;
+  idx_t target;
   bool operator < (const edgorder_t& edg) const {
     return (edgidx < edg.edgidx);
   }
@@ -421,6 +444,7 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<std::vector<real_t>>> state;
         // first level is the vertex, second level is the models, third is state data
     std::vector<std::vector<std::vector<tick_t>>> stick;
+    std::vector<std::vector<event_t>> event;
     /* Models */
     std::vector<model_t> models;
     std::vector<std::string> modname;     // model names in order of object index
@@ -449,14 +473,21 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<std::vector<real_t>>> statepart;
         // first level is the part, second is the models, thrid is state data
     std::vector<std::vector<std::vector<tick_t>>> stickpart;
+    std::vector<std::vector<std::vector<event_t>>> eventpart;
     /* Reordering */
     std::vector<std::vector<vtxorder_t>> vtxorder; // modidx and vtxidx for sorting
     std::vector<edgorder_t> edgorder; // edgidx and states for sorting
     std::vector<std::vector<real_t>> xyzorder; // coordinates by vertex
     std::vector<std::vector<std::vector<idx_t>>> adjcyorder; // adjacency by vertex
+    std::vector<std::vector<std::vector<idx_t>>> adjcyreorder; // adjacency by vertex
     std::vector<std::vector<std::vector<idx_t>>> edgmodidxorder; // edge models by vertex
+    std::vector<std::vector<std::vector<idx_t>>> edgmodidxreorder; // edge models by vertex
     std::vector<std::vector<std::vector<std::vector<real_t>>>> stateorder; // state by vertex
+    std::vector<std::vector<std::vector<std::vector<real_t>>>> statereorder; // state by vertex
     std::vector<std::vector<std::vector<std::vector<tick_t>>>> stickorder; // stick by vertex
+    std::vector<std::vector<std::vector<std::vector<tick_t>>>> stickreorder; // stick by vertex
+    std::vector<std::vector<std::vector<event_t>>> eventorder; // event by vertex
+    std::vector<std::vector<idx_t>> targetorder; // target reordering
     std::list<mOrder *> ordering;
     /* Bookkeeping */
     idx_t datidx;

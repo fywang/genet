@@ -55,12 +55,13 @@ void GeNet::Read(mMetis *msg) {
   idx_t nsizedat;
   idx_t nstatedat;
   idx_t nstickdat;
-  //idx_t nstickdat;
+  idx_t neventdat;
   /* File operations */
   FILE *pPart;
   FILE *pCoord;
   FILE *pAdjcy;
   FILE *pState;
+  FILE *pEvent;
   char csrfile[100];
   char *line;
   char *oldstr, *newstr;
@@ -89,8 +90,10 @@ void GeNet::Read(mMetis *msg) {
   pAdjcy = fopen(csrfile,"r");
   sprintf(csrfile, "%s.state.%" PRIidx "", filebase.c_str(), datidx);
   pState = fopen(csrfile,"r");
+  sprintf(csrfile, "%s.event.%" PRIidx "", filebase.c_str(), datidx);
+  pEvent = fopen(csrfile,"r");
   if (pPart == NULL || pCoord == NULL || pAdjcy == NULL ||
-      pState == NULL || line == NULL) {
+      pState == NULL || pEvent == NULL || line == NULL) {
     CkPrintf("Error opening files for reading\n");
     CkExit();
   }
@@ -104,9 +107,11 @@ void GeNet::Read(mMetis *msg) {
   adjcypart.resize(npnet);
   statepart.resize(npnet);
   stickpart.resize(npnet);
+  eventpart.resize(npnet);
   nsizedat = 0;
   nstatedat = 0;
   nstickdat = 0;
+  neventdat = 0;
 
   // Read in graph information
   for (std::size_t i = 0; i < partmetis.size(); ++i) {
@@ -203,6 +208,40 @@ void GeNet::Read(mMetis *msg) {
       modidx = strtomodidx(oldstr, &newstr);
       oldstr = newstr;
     }
+
+    // Extract event information
+    // Read line (per vertex)
+    while(fgets(line, MAXLINE, pEvent) && line[0] == '%');
+    oldstr = line;
+    newstr = NULL;
+    // number of events
+    idx_t jevent = strtoidx(oldstr, &newstr, 10);
+    oldstr = newstr;
+    eventpart[partmetis[i]].push_back(std::vector<event_t>());
+    event_t eventpre;
+    for (idx_t j = 0; j < jevent; ++j) {
+      // diffuse
+      eventpre.diffuse = strtotick(oldstr, &newstr, 10);
+      oldstr = newstr;
+      // target
+      eventpre.target = strtoidx(oldstr, &newstr, 10);
+      oldstr = newstr;
+      // type
+      idx_t type = strtoidx(oldstr, &newstr, 10);
+      oldstr = newstr;
+      eventpre.type = type;
+      // data
+      if (type == EVENT_SPIKE) {
+        eventpre.data = 0.0;
+      }
+      else {
+        eventpre.data = strtoreal(oldstr, &newstr);
+        oldstr = newstr;
+      }
+      eventpart[partmetis[i]].back().push_back(eventpre);
+    }
+    neventdat += jevent;
+    CkAssert(eventpart[partmetis[i]].back().size() == jevent);
   }
 
   // Cleanup
@@ -210,11 +249,12 @@ void GeNet::Read(mMetis *msg) {
   fclose(pCoord);
   fclose(pAdjcy);
   fclose(pState);
+  fclose(pEvent);
   delete[] line;
 
   // Print out some information
-  CkPrintf("  File: %" PRIidx "   Vertices: %" PRIidx "   Edges: %" PRIidx "   States: %" PRIidx "   Sticks: %" PRIidx"\n",
-      datidx, partmetis.size(), nsizedat, nstatedat, nstickdat);
+  CkPrintf("  File: %" PRIidx "   Vertices: %" PRIidx "   Edges: %" PRIidx "   States: %" PRIidx "   Sticks: %" PRIidx"   Events: %" PRIidx"\n",
+      datidx, partmetis.size(), nsizedat, nstatedat, nstickdat, neventdat);
 
   // Prepare for partitioning
   cpdat = 0;
@@ -223,9 +263,14 @@ void GeNet::Read(mMetis *msg) {
   vtxorder.resize(nprt);
   xyzorder.resize(nprt);
   adjcyorder.resize(nprt);
+  adjcyreorder.resize(nprt);
   edgmodidxorder.resize(nprt);
+  edgmodidxreorder.resize(nprt);
   stateorder.resize(nprt);
+  statereorder.resize(nprt);
   stickorder.resize(nprt);
+  stickreorder.resize(nprt);
+  eventorder.resize(nprt);
   norderprt.resize(nprt);
   for (idx_t i = 0; i < nprt; ++i) {
     norderprt[i] = 0;
@@ -252,6 +297,7 @@ void GeNet::Write(const CkCallback &cb) {
   FILE *pCoord;
   FILE *pAdjcy;
   FILE *pState;
+  FILE *pEvent;
   char csrfile[100];
 
   // Open files for writing
@@ -261,7 +307,9 @@ void GeNet::Write(const CkCallback &cb) {
   pAdjcy = fopen(csrfile,"w");
   sprintf(csrfile, "%s%s.state.%" PRIidx "", filebase.c_str(), filemod.c_str(), datidx);
   pState = fopen(csrfile,"w");
-  if (pCoord == NULL || pAdjcy == NULL || pState == NULL) {
+  sprintf(csrfile, "%s%s.event.%" PRIidx "", filebase.c_str(), filemod.c_str(), datidx);
+  pEvent = fopen(csrfile,"w");
+  if (pCoord == NULL || pAdjcy == NULL || pState == NULL || pEvent == NULL) {
     CkPrintf("Error opening files for writing %" PRIidx "\n", datidx);
     CkExit();
   }
@@ -277,6 +325,7 @@ void GeNet::Write(const CkCallback &cb) {
     rdist[k].nedg = 0;
     rdist[k].nstate = 0;
     rdist[k].nstick = 0;
+    rdist[k].nevent = 0;
 
     // Graph adjacency information
     for (idx_t i = 0; i < norderprt[k]; ++i) {
@@ -319,9 +368,24 @@ void GeNet::Write(const CkCallback &cb) {
         fprintf(pAdjcy, " %" PRIidx "", adjcy[jvtxidx][j]);
       }
 
+      // event information
+      rdist[k].nevent += event[jvtxidx].size();
+      fprintf(pEvent, " %" PRIidx "", event[jvtxidx].size());
+      for (std::size_t j = 0; j < event[jvtxidx].size(); ++j) {
+        if (event[jvtxidx][j].type == EVENT_SPIKE) {
+          fprintf(pEvent, " %" PRItick " %" PRIidx " %" PRIidx "",
+              event[jvtxidx][j].diffuse, event[jvtxidx][j].target, event[jvtxidx][j].type);
+        }
+        else {
+          fprintf(pEvent, " %" PRItick " %" PRIidx " %" PRIidx " %" PRIrealfull "",
+              event[jvtxidx][j].diffuse, event[jvtxidx][j].target, event[jvtxidx][j].type, event[jvtxidx][j].data);
+        }
+      }
+
       // one set per vertex
       fprintf(pState, "\n");
       fprintf(pAdjcy, "\n");
+      fprintf(pEvent, "\n");
       ++jvtxidx;
     }
   }
@@ -331,6 +395,7 @@ void GeNet::Write(const CkCallback &cb) {
   fclose(pCoord);
   fclose(pAdjcy);
   fclose(pState);
+  fclose(pEvent);
 
   // return control to main
   contribute(nprt*sizeof(dist_t), rdist.data(), net_dist, cb);
@@ -395,6 +460,7 @@ int Main::WriteDist() {
   idx_t nedg;
   idx_t nstate;
   idx_t nstick;
+  idx_t nevent;
 
   // Open File
   sprintf(csrfile, "%s%s.dist", filebase.c_str(), filemod.c_str());
@@ -411,14 +477,15 @@ int Main::WriteDist() {
 
   // Write to file
   CkPrintf("  Writing network distribution\n");
-  nvtx = nedg = nstate = nstick = 0;
-  fprintf(pDist, "%" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx "\n", nvtx, nedg, nstate, nstick);
+  nvtx = nedg = nstate = nstick = nevent = 0;
+  fprintf(pDist, "%" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx "\n", nvtx, nedg, nstate, nstick, nevent);
   for (std::size_t i = 0; i < netdist.size(); ++i) {
     nvtx += netdist[i].nvtx;
     nedg += netdist[i].nedg;
     nstate += netdist[i].nstate;
     nstick += netdist[i].nstick;
-    fprintf(pDist, "%" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx "\n", nvtx, nedg, nstate, nstick);
+    nevent += netdist[i].nevent;
+    fprintf(pDist, "%" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx " %" PRIidx "\n", nvtx, nedg, nstate, nstick, nevent);
   }
 
   // For Metis

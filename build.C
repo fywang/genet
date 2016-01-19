@@ -183,6 +183,7 @@ void GeNet::Build(mGraph *msg) {
   // Build vertices from model
   state.resize(norderdat);
   stick.resize(norderdat);
+  event.resize(norderdat);
   for (idx_t i = 0; i < norderdat; ++i) {
     // Sanity check
     // 0 is reserved for 'none' edge type
@@ -237,6 +238,8 @@ void GeNet::Build(mGraph *msg) {
     // Add to state
     state[i].push_back(rngstate);
     stick[i].push_back(rngstick);
+    // Empty events
+    event[i].clear();
   }
 
   // Prepare for connection

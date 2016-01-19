@@ -70,11 +70,17 @@ mainmodule genet {
     idx_t edgmodidx[];
     real_t state[];
     tick_t stick[];
+    idx_t xevent[];
+    tick_t diffuse[];
+    idx_t target[];
+    idx_t type[];
+    real_t data[];
     idx_t datidx;
     idx_t prtidx;
     idx_t nvtx;
     idx_t nstate;
     idx_t nstick;
+    idx_t nevent;
   };
 
   message mOrder {
