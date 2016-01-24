@@ -15,23 +15,21 @@ typedef long double real10;
 
 typedef int64_t  idx_t;
 typedef uint64_t uidx_t;
-typedef uint64_t longtick_t;
-typedef uint32_t tick_t;
+typedef uint64_t tick_t;
 typedef uint16_t flag_t;
 typedef real8 real_t;
 
 // Reading from file
 #define strtoidx strtoll
 #define strtouidx strtoull
-#define strtotick strtoul
-#define strtolongtick strtoull
+#define strtotick strtoull
 #define strtoreal strtod
 
 // Printing to string
 #define PRIidx PRId64
 #define PRIuidx PRIu64
-#define PRItick PRIu32
-#define PRIlongtick PRIu64
+#define PRItick PRIu64
+#define PRItickhex PRIx64
 #define PRIreal ".2g"
 #define PRIrealfull " .7e"
 

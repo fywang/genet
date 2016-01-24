@@ -172,7 +172,7 @@ void GeNet::Read(mMetis *msg) {
       ++nstatedat;
     }
     for(std::size_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
-      tick_t stt = strtotick(oldstr, &newstr, 10);
+      tick_t stt = strtotick(oldstr, &newstr, 16);
       oldstr = newstr;
       // state
       stickpart[partmetis[i]].back().push_back(stt);
@@ -198,7 +198,7 @@ void GeNet::Read(mMetis *msg) {
           ++nstatedat;
         }
         for(std::size_t s = 0; s < models[modidx-1].sticktype.size(); ++s) {
-          tick_t stt = strtotick(oldstr, &newstr, 10);
+          tick_t stt = strtotick(oldstr, &newstr, 16);
           oldstr = newstr;
           // state
           stickpart[partmetis[i]].back().push_back(stt);
@@ -221,7 +221,7 @@ void GeNet::Read(mMetis *msg) {
     event_t eventpre;
     for (idx_t j = 0; j < jevent; ++j) {
       // diffuse
-      eventpre.diffuse = strtotick(oldstr, &newstr, 10);
+      eventpre.diffuse = strtotick(oldstr, &newstr, 16);
       oldstr = newstr;
       // target
       eventpre.target = strtoidx(oldstr, &newstr, 10);
@@ -301,13 +301,13 @@ void GeNet::Write(const CkCallback &cb) {
   char csrfile[100];
 
   // Open files for writing
-  sprintf(csrfile, "%s%s.coord.%" PRIidx "", filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s.coord.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
   pCoord = fopen(csrfile,"w");
-  sprintf(csrfile, "%s%s.adjcy.%" PRIidx "", filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s.adjcy.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
   pAdjcy = fopen(csrfile,"w");
-  sprintf(csrfile, "%s%s.state.%" PRIidx "", filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s.state.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
   pState = fopen(csrfile,"w");
-  sprintf(csrfile, "%s%s.event.%" PRIidx "", filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s.event.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
   pEvent = fopen(csrfile,"w");
   if (pCoord == NULL || pAdjcy == NULL || pState == NULL || pEvent == NULL) {
     CkPrintf("Error opening files for writing %" PRIidx "\n", datidx);
@@ -342,7 +342,7 @@ void GeNet::Write(const CkCallback &cb) {
         fprintf(pState, " %" PRIrealfull "", state[jvtxidx][0][s]);
       }
       for (std::size_t s = 0; s < models[vtxmodidx[jvtxidx]-1].sticktype.size(); ++s) {
-        fprintf(pState, " %" PRItick "", stick[jvtxidx][0][s]);
+        fprintf(pState, " %" PRItickhex "", stick[jvtxidx][0][s]);
       }
       
       // edge state
@@ -357,7 +357,7 @@ void GeNet::Write(const CkCallback &cb) {
             fprintf(pState, " %" PRIrealfull "", state[jvtxidx][j+1][s]);
           }
           for (std::size_t s = 0; s < models[edgmodidx[jvtxidx][j]-1].sticktype.size(); ++s) {
-            fprintf(pState, " %" PRItick "", stick[jvtxidx][j+1][s]);
+            fprintf(pState, " %" PRItickhex "", stick[jvtxidx][j+1][s]);
           }
         }
       }
@@ -373,11 +373,11 @@ void GeNet::Write(const CkCallback &cb) {
       fprintf(pEvent, " %" PRIidx "", event[jvtxidx].size());
       for (std::size_t j = 0; j < event[jvtxidx].size(); ++j) {
         if (event[jvtxidx][j].type == EVENT_SPIKE) {
-          fprintf(pEvent, " %" PRItick " %" PRIidx " %" PRIidx "",
+          fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx "",
               event[jvtxidx][j].diffuse, event[jvtxidx][j].target, event[jvtxidx][j].type);
         }
         else {
-          fprintf(pEvent, " %" PRItick " %" PRIidx " %" PRIidx " %" PRIrealfull "",
+          fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx " %" PRIrealfull "",
               event[jvtxidx][j].diffuse, event[jvtxidx][j].target, event[jvtxidx][j].type, event[jvtxidx][j].data);
         }
       }
@@ -463,9 +463,9 @@ int Main::WriteDist() {
   idx_t nevent;
 
   // Open File
-  sprintf(csrfile, "%s%s.dist", filebase.c_str(), filemod.c_str());
+  sprintf(csrfile, "%s.dist%s", filebase.c_str(), filemod.c_str());
   pDist = fopen(csrfile,"w");
-  sprintf(csrfile, "%s%s.metis", filebase.c_str(), filemod.c_str());
+  sprintf(csrfile, "%s.metis%s", filebase.c_str(), filemod.c_str());
   pMetis = fopen(csrfile,"w");
   if (pDist == NULL || pMetis == NULL) {
     CkPrintf("Error opening file for writing\n");
