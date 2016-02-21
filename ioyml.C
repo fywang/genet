@@ -272,6 +272,62 @@ int Main::ReadModel() {
           ++jstate;
         }
       }
+      else if (rngtype == "uniform interval") {
+        if (reptype == "tick") {
+          // Uniform distribution (intervalled)
+          models[i].sticktype[jstick] = RNGTYPE_UNINT;
+          models[i].stickparam[jstick].resize(RNGPARAM_UNINT);
+          try {
+            // min value
+            models[i].stickparam[jstick][0] = state[j]["min"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform min: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // max value
+            models[i].stickparam[jstick][1] = state[j]["max"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform max: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // int value
+            models[i].stickparam[jstick][2] = state[j]["int"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform int: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
+        }
+        else {
+          // Uniform distribution (intervalled)
+          models[i].statetype[jstate] = RNGTYPE_UNINT;
+          models[i].stateparam[jstate].resize(RNGPARAM_UNINT);
+          try {
+            // min value
+            models[i].stateparam[jstate][0] = state[j]["min"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform min: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // max value
+            models[i].stateparam[jstate][1] = state[j]["max"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform max: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // int value
+            models[i].stateparam[jstate][2] = state[j]["int"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state uniform int: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
+        }
+      }
       else if (rngtype == "normal") {
         if (reptype == "tick") {
           // Normal distribution

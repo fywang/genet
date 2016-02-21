@@ -203,6 +203,9 @@ void GeNet::Build(mGraph *msg) {
       else if (models[modidx].statetype[s] == RNGTYPE_UNIF) {
         rngstate[s] = rngunif(models[modidx].stateparam[s].data());
       }
+      else if (models[modidx].statetype[s] == RNGTYPE_UNINT) {
+        rngstate[s] = rngunint(models[modidx].stateparam[s].data());
+      }
       else if (models[modidx].statetype[s] == RNGTYPE_NORM) {
         rngstate[s] = rngnorm(models[modidx].stateparam[s].data());
       }
@@ -222,6 +225,9 @@ void GeNet::Build(mGraph *msg) {
       }
       else if (models[modidx].sticktype[s] == RNGTYPE_UNIF) {
         rngstick[s] = (tick_t)(TICKS_PER_MS * rngunif(models[modidx].stickparam[s].data()));
+      }
+      else if (models[modidx].sticktype[s] == RNGTYPE_UNINT) {
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngunint(models[modidx].stickparam[s].data()));
       }
       else if (models[modidx].sticktype[s] == RNGTYPE_NORM) {
         rngstick[s] = (tick_t)(TICKS_PER_MS * rngnorm(models[modidx].stickparam[s].data()));
@@ -692,6 +698,9 @@ std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
     else if (models[modidx].statetype[j] == RNGTYPE_UNIF) {
       rngstate[j] = rngunif(models[modidx].stateparam[j].data());
     }
+    else if (models[modidx].statetype[j] == RNGTYPE_UNINT) {
+      rngstate[j] = rngunint(models[modidx].stateparam[j].data());
+    }
     else if (models[modidx].statetype[j] == RNGTYPE_NORM) {
       rngstate[j] = rngnorm(models[modidx].stateparam[j].data());
     }
@@ -735,6 +744,9 @@ std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist) {
     }
     else if (models[modidx].sticktype[j] == RNGTYPE_UNIF) {
       rngstick[j] = (tick_t)(TICKS_PER_MS * rngunif(models[modidx].stickparam[j].data()));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_UNINT) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngunint(models[modidx].stickparam[j].data()));
     }
     else if (models[modidx].sticktype[j] == RNGTYPE_NORM) {
       rngstick[j] = (tick_t)(TICKS_PER_MS * rngnorm(models[modidx].stickparam[j].data()));

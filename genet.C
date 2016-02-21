@@ -285,6 +285,7 @@ GeNet::GeNet(mModel *msg) {
   rngtype.resize(RNGTYPE_NRNG);
   rngtype[RNGTYPE_CONST] = std::string("constant");
   rngtype[RNGTYPE_UNIF] = std::string("uniform");
+  rngtype[RNGTYPE_UNINT] = std::string("uniform interval");
   rngtype[RNGTYPE_NORM] = std::string("normal");
   rngtype[RNGTYPE_BNORM] = std::string("bounded normal");
   rngtype[RNGTYPE_LIN] = std::string("linear");
@@ -323,6 +324,9 @@ GeNet::GeNet(mModel *msg) {
         case RNGTYPE_UNIF:
           models[i].stateparam[j].resize(RNGPARAM_UNIF);
           break;
+        case RNGTYPE_UNINT:
+          models[i].stateparam[j].resize(RNGPARAM_UNINT);
+          break;
         case RNGTYPE_NORM:
           models[i].stateparam[j].resize(RNGPARAM_NORM);
           break;
@@ -355,6 +359,9 @@ GeNet::GeNet(mModel *msg) {
           break;
         case RNGTYPE_UNIF:
           models[i].stickparam[j].resize(RNGPARAM_UNIF);
+          break;
+        case RNGTYPE_UNINT:
+          models[i].stickparam[j].resize(RNGPARAM_UNINT);
           break;
         case RNGTYPE_NORM:
           models[i].stickparam[j].resize(RNGPARAM_NORM);

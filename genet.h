@@ -35,21 +35,23 @@
 #define GRAPHTYPE_VTX   0
 #define GRAPHTYPE_EDG   1
 
-#define RNGTYPE_NRNG    8
+#define RNGTYPE_NRNG    9
 #define REPTYPE_REAL    0
 #define REPTYPE_TICK    1
 
 #define RNGTYPE_CONST   0
 #define RNGTYPE_UNIF    1
-#define RNGTYPE_NORM    2
-#define RNGTYPE_BNORM   3
-#define RNGTYPE_LIN     4
-#define RNGTYPE_LBLIN   5
-#define RNGTYPE_UBLIN   6
-#define RNGTYPE_BLIN    7
+#define RNGTYPE_UNINT   2
+#define RNGTYPE_NORM    3
+#define RNGTYPE_BNORM   4
+#define RNGTYPE_LIN     5
+#define RNGTYPE_LBLIN   6
+#define RNGTYPE_UBLIN   7
+#define RNGTYPE_BLIN    8
 
 #define RNGPARAM_CONST  1
 #define RNGPARAM_UNIF   2
+#define RNGPARAM_UNINT  3
 #define RNGPARAM_NORM   2
 #define RNGPARAM_BNORM  3
 #define RNGPARAM_LIN    2
@@ -399,6 +401,10 @@ class GeNet : public CBase_GeNet {
     // RNG State uniform
     real_t rngunif(real_t *param) {
       return param[0] + (param[1] - param[0])*((*unifdist)(rngine));
+    }
+    // RNG State uniform interval
+    real_t rngunint(real_t *param) {
+      return param[0] + param[2] * std::floor((((param[1] - param[0])/param[2])+1)*((*unifdist)(rngine)));
     }
     // RNG State normal
     real_t rngnorm(real_t *param) {

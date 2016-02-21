@@ -1,0 +1,8 @@
+npdat: 4
+npnet: 8
+evtcal: 21
+tmax:  60000 # one minute
+tcheck: 10000 # 10 seconds
+trecord: 1000 # 1 second
+
+filebase: "polynet/polynet"
