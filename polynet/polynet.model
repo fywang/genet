@@ -13,8 +13,6 @@ param:
     value: 8
   - name: rng
     value: 1000
-  - name: edgup
-    value: 1000
 state:
   - name: v
     type: constant
@@ -42,8 +40,6 @@ param:
     value: 2
   - name: rng
     value: 1000
-  - name: edgup
-    value: 1000
 state:
   - name: v
     type: constant
@@ -65,6 +61,8 @@ param:
     value: 10
   - name: tau
     value: 20
+  - name: update
+    value: 1000
 state:
   - name: delay
     type: uniform interval
