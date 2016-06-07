@@ -658,7 +658,8 @@ int Main::ReadGraph() {
 
     // preallocate space
     edges[i].conntype.resize(conn.size());
-    edges[i].connparam.resize(conn.size());
+    edges[i].probparam.resize(conn.size());
+    edges[i].maskparam.resize(conn.size());
 
     // loop through the connections
     for (std::size_t j = 0; j < conn.size(); ++j) {
@@ -674,38 +675,74 @@ int Main::ReadGraph() {
       if (conntype == "uniform") {
         // Randomly connect
         edges[i].conntype[j] = CONNTYPE_UNIF;
-        edges[i].connparam[j].resize(CONNPARAM_UNIF);
+        edges[i].probparam[j].resize(PROBPARAM_UNIF);
+        edges[i].maskparam[j].resize(MASKPARAM_UNIF);
         try {
           // probability threshold
-          edges[i].connparam[j][0] = conn[j]["prob"].as<real_t>();
+          edges[i].probparam[j][0] = conn[j]["prob"].as<real_t>();
         } catch (YAML::RepresentationException& e) {
           CkPrintf("  connect random prob: %s\n", e.what());
           return 1;
         }
       }
       else if (conntype == "sigmoid") {
-        // Randomly connect
+        // Connect according to sigmoid property
         edges[i].conntype[j] = CONNTYPE_SIG;
-        edges[i].connparam[j].resize(CONNPARAM_SIG);
+        edges[i].probparam[j].resize(PROBPARAM_SIG);
+        edges[i].maskparam[j].resize(MASKPARAM_SIG);
         try {
           // maximum probability
-          edges[i].connparam[j][0] = conn[j]["maxprob"].as<real_t>();
+          edges[i].probparam[j][0] = conn[j]["maxprob"].as<real_t>();
         } catch (YAML::RepresentationException& e) {
           CkPrintf("  connect sigmoid maxprob: %s\n", e.what());
           return 1;
         }
         try {
           // sigmoid midpoint
-          edges[i].connparam[j][1] = conn[j]["midpoint"].as<real_t>();
+          edges[i].probparam[j][1] = conn[j]["midpoint"].as<real_t>();
         } catch (YAML::RepresentationException& e) {
           CkPrintf("  connect sigmoid midpoint: %s\n", e.what());
           return 1;
         }
         try {
           // sigmoid slope
-          edges[i].connparam[j][2] = conn[j]["slope"].as<real_t>();
+          edges[i].probparam[j][2] = conn[j]["slope"].as<real_t>();
         } catch (YAML::RepresentationException& e) {
           CkPrintf("  connect sigmoid slope: %s\n", e.what());
+          return 1;
+        }
+      }
+      else if (conntype == "index") {
+        // Connect by index of source and target
+        edges[i].conntype[j] = CONNTYPE_IDX;
+        edges[i].probparam[j].resize(PROBPARAM_IDX);
+        edges[i].maskparam[j].resize(MASKPARAM_IDX);
+        // By index requires single source and target
+        if (edges[i].target.size() > 1) {
+          CkPrintf("  connect index is single target only\n");
+          return 1;
+        }
+        // source and target order
+        for (std::size_t v = 0; v < vertices.size(); ++v) {
+          if (edges[i].source == vertices[v].modidx) {
+            edges[i].maskparam[j][0] = vertices[v].order;
+          }
+          if (edges[i].target[0] == vertices[v].modidx) {
+            edges[i].maskparam[j][1] = vertices[v].order;
+          }
+        }
+        try {
+          // connection source multiplier
+          edges[i].maskparam[j][2] = conn[j]["srcmul"].as<idx_t>();
+        } catch (YAML::RepresentationException& e) {
+          CkPrintf("  connect index srcmul: %s\n", e.what());
+          return 1;
+        }
+        try {
+          // connection source offset
+          edges[i].maskparam[j][3] = conn[j]["srcoff"].as<idx_t>();
+        } catch (YAML::RepresentationException& e) {
+          CkPrintf("  connect index srcoff: %s\n", e.what());
           return 1;
         }
       }

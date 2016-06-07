@@ -23,9 +23,20 @@ edge:
         midpoint: 37.0
         slope: 0.03
   - source: dummyvtx1
-    target: [dummyvtx, dummyvtx1]
+    target: [dummyvtx]
     modname: dummyedg
     cutoff: 50.0
     connect:
       - type: uniform
         prob: 0.3
+  - source: dummyvtx1
+    target: [dummyvtx1]
+    modname: dummyedg
+    cutoff: 200.0
+    connect:
+      - type: index
+        srcmul: 1
+        srcoff: 1
+      - type: index
+        srcmul: 1
+        srcoff: -1

@@ -66,10 +66,16 @@
 #define VTXPARAM_SPHERE 1
 
 #define CONNTYPE_UNIF   0
-#define CONNTYPE_SIG    1
+#define PROBPARAM_UNIF  1
+#define MASKPARAM_UNIF  0
 
-#define CONNPARAM_UNIF  1
-#define CONNPARAM_SIG   3
+#define CONNTYPE_SIG    1
+#define PROBPARAM_SIG   3
+#define MASKPARAM_SIG   0
+
+#define CONNTYPE_IDX    2
+#define PROBPARAM_IDX   0
+#define MASKPARAM_IDX   4
 
 #define EVENT_SPIKE     0
 
@@ -102,7 +108,7 @@ class mModel : public CMessage_mModel {
     idx_t nstickparam;
 };
 
-#define MSG_Graph 14
+#define MSG_Graph 16
 class mGraph : public CMessage_mGraph {
   public:
     idx_t *vtxmodidx;     // Which vertex to build (modidx from modmap)
@@ -117,20 +123,24 @@ class mGraph : public CMessage_mGraph {
     real_t *edgcutoff;    // cutoff distance of connection
     idx_t *xedgconntype;  // connection type prefix
     idx_t *edgconntype;   // connection type (computes probability threshold)
-    idx_t *medgconnparam; // connection parameters sizes
-    real_t *edgconnparam; // connection parameters
+    idx_t *medgprobparam; // connection probability sizes
+    real_t *edgprobparam; // connection probability parameters
+    idx_t *medgmaskparam; // connection mask sizes
+    idx_t *edgmaskparam;  // connection mask parameters
     idx_t nvtx;
     idx_t nvtxparam;
     idx_t nedg;
     idx_t nedgtarget;
     idx_t nedgconntype;
-    idx_t nedgconnparam;
+    idx_t nedgprobparam;
+    idx_t nedgmaskparam;
 };
 
-#define MSG_Conn 5
+#define MSG_Conn 6
 class mConn : public CMessage_mConn {
   public:
     idx_t *vtxmodidx;   // vertex model
+    idx_t *vtxordidx;   // vertex model order
     real_t *xyz;        // vertex coordinates
     idx_t *xadj;        // prefix for adjacency
     idx_t *adjcy;       // adjacent vertices
@@ -213,7 +223,8 @@ struct edge_t {
   idx_t modidx;
   real_t cutoff;
   std::vector<idx_t> conntype;
-  std::vector<std::vector<real_t>> connparam;
+  std::vector<std::vector<real_t>> probparam;
+  std::vector<std::vector<idx_t>> maskparam;
 };
 
 // Size Distributions
@@ -356,7 +367,7 @@ class GeNet : public CBase_GeNet {
     mConn* BuildPrevConn(idx_t reqidx);
     mConn* BuildCurrConn();
     mConn* BuildNextConn();
-    idx_t MakeConnection(idx_t source, idx_t target, real_t dist);
+    idx_t MakeConnection(idx_t source, idx_t target, idx_t sourceidx, idx_t targetidx, real_t dist);
     std::vector<real_t> BuildEdgState(idx_t modidx, real_t dist);
     std::vector<tick_t> BuildEdgStick(idx_t modidx, real_t dist);
 
@@ -457,6 +468,7 @@ class GeNet : public CBase_GeNet {
     std::unordered_map<std::string, idx_t> modmap; // maps model name to object index
     std::vector<std::string> rngtype;     // rng types in order of definitions
     std::vector<idx_t> vtxmodidx; // vertex model index into netmodel
+    std::vector<idx_t> vtxordidx; // vertex index within model order
     std::vector<std::vector<idx_t>> edgmodidx; // edge model index into netmodel
     /* Connection information */
     std::vector<std::vector<std::vector<idx_t>>> adjcyconn;
@@ -503,6 +515,7 @@ class GeNet : public CBase_GeNet {
     idx_t norderdat; // order per data
     std::vector<idx_t> norderprt;  // order of vertices per network part
     std::vector<std::vector<idx_t>> nordervtx;  // order of vertex models 
+    std::vector<std::vector<idx_t>> xordervtx;  // prefix of vertex models
     /* Random Number Generation */
     std::mt19937 rngine;
     std::uniform_real_distribution<real_t> *unifdist;

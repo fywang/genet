@@ -26,6 +26,17 @@ typedef real8 real_t;
 #define strtoreal strtod
 
 // Printing to string
+#ifndef PRId64
+# if __WORDSIZE == 64
+#  define __PRI64_PREFIX "l"
+# else
+#  define __PRI64_PREFIX "ll"
+# endif
+# define PRId64	__PRI64_PREFIX "d"
+# define PRIu64	__PRI64_PREFIX "u"
+# define PRIx64	__PRI64_PREFIX "x"
+#endif
+
 #define PRIidx PRId64
 #define PRIuidx PRIu64
 #define PRItick PRIu64

@@ -36,18 +36,22 @@ mainmodule genet {
     real_t edgcutoff[];
     idx_t xedgconntype[];
     idx_t edgconntype[];
-    idx_t medgconnparam[];
-    real_t edgconnparam[];
+    idx_t medgprobparam[];
+    real_t edgprobparam[];
+    idx_t medgmaskparam[];
+    idx_t edgmaskparam[];
     idx_t nvtx;
     idx_t nvtxparam;
     idx_t nedg;
     idx_t nedgtarget;
     idx_t nedgconntype;
-    idx_t nedgconnparam;
+    idx_t nedgprobparam;
+    idx_t nedgmaskparam;
   };
 
   message mConn {
     idx_t vtxmodidx[];
+    idx_t vtxordidx[];
     real_t xyz[];
     idx_t xadj[];
     idx_t adjcy[];

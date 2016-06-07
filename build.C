@@ -24,7 +24,8 @@ void GeNet::Build(mGraph *msg) {
   idx_t jvtxparam;
   idx_t jedgtarget;
   idx_t jedgconntype;
-  idx_t jedgconnparam;
+  idx_t jedgprobparam;
+  idx_t jedgmaskparam;
   
   // initialize counters
   jvtxparam = 0;
@@ -48,7 +49,8 @@ void GeNet::Build(mGraph *msg) {
   // initialize counters
   jedgtarget = 0;
   jedgconntype = 0;
-  jedgconnparam = 0;
+  jedgprobparam = 0;
+  jedgmaskparam = 0;
 
   // Edges
   edges.resize(msg->nedg);
@@ -63,19 +65,25 @@ void GeNet::Build(mGraph *msg) {
     }
     
     edges[i].conntype.resize(msg->xedgconntype[i+1] - msg->xedgconntype[i]);
-    edges[i].connparam.resize(msg->xedgconntype[i+1] - msg->xedgconntype[i]);
+    edges[i].probparam.resize(msg->xedgconntype[i+1] - msg->xedgconntype[i]);
+    edges[i].maskparam.resize(msg->xedgconntype[i+1] - msg->xedgconntype[i]);
     for (std::size_t j = 0; j < edges[i].conntype.size(); ++j) {
       edges[i].conntype[j] = msg->edgconntype[jedgconntype];
-      edges[i].connparam[j].resize(msg->medgconnparam[jedgconntype++]);
-      for (std::size_t k = 0; k < edges[i].connparam[j].size(); ++k) {
-        edges[i].connparam[j][k] = msg->edgconnparam[jedgconnparam++];
+      edges[i].probparam[j].resize(msg->medgprobparam[jedgconntype]);
+      edges[i].maskparam[j].resize(msg->medgmaskparam[jedgconntype++]);
+      for (std::size_t k = 0; k < edges[i].probparam[j].size(); ++k) {
+        edges[i].probparam[j][k] = msg->edgprobparam[jedgprobparam++];
+      }
+      for (std::size_t k = 0; k < edges[i].maskparam[j].size(); ++k) {
+        edges[i].maskparam[j][k] = msg->edgmaskparam[jedgmaskparam++];
       }
     }
   }
   // Sanity checks
   CkAssert(jedgtarget == msg->nedgtarget);
   CkAssert(jedgconntype == msg->nedgconntype);
-  CkAssert(jedgconnparam == msg->nedgconnparam);
+  CkAssert(jedgprobparam == msg->nedgprobparam);
+  CkAssert(jedgmaskparam == msg->nedgmaskparam);
 
   // cleanup
   delete msg;
@@ -92,8 +100,10 @@ void GeNet::Build(mGraph *msg) {
   // Initial distribution is simply contructing
   // vertices as evenly as possible across the parts
   nordervtx.resize(nprt);
+  xordervtx.resize(nprt);
   for (idx_t k = 0; k < nprt; ++k) {
     nordervtx[k].resize(vertices.size());
+    xordervtx[k].resize(vertices.size());
   }
   idx_t xremvtx = 0;
   for (std::size_t i = 0; i < vertices.size(); ++i) {
@@ -103,6 +113,12 @@ void GeNet::Build(mGraph *msg) {
       // looping integer magic
       nordervtx[k][i] = ndivvtx + (((xprt+k) >= xremvtx && (xprt+k) < nremvtx+xremvtx) ||
           (nremvtx+xremvtx >= npnet && (xprt+k) < xremvtx && (xprt+k) < (nremvtx+xremvtx)%npnet));
+      xordervtx[k][i] = ndivvtx * (xprt+k);
+      // TODO: see if you can get rid of the loop
+      for (idx_t j = 0; j < xprt+k; ++j) {
+        xordervtx[k][i] += ((j >= xremvtx && j < nremvtx+xremvtx) ||
+            (nremvtx+xremvtx >= npnet && j < xremvtx && j < (nremvtx+xremvtx)%npnet));
+      }
     }
     xremvtx = (xremvtx+nremvtx)%npnet;
   }
@@ -128,7 +144,7 @@ void GeNet::Build(mGraph *msg) {
     orderprts.append(" [");
     for (std::size_t i = 0; i < vertices.size(); ++i) {
       std::ostringstream ordervtx;
-      ordervtx << " " << nordervtx[k][i];
+      ordervtx << " " << nordervtx[k][i] << "(" << xordervtx[k][i] << ")";
       orderprts.append(ordervtx.str());
     }
     orderprts.append(" ]");
@@ -140,6 +156,7 @@ void GeNet::Build(mGraph *msg) {
 
   // Create model indices
   vtxmodidx.resize(norderdat);
+  vtxordidx.resize(norderdat);
   edgmodidx.resize(norderdat);
   xyz.resize(norderdat*3);
   idx_t jvtxidx = 0;
@@ -149,6 +166,7 @@ void GeNet::Build(mGraph *msg) {
       for (idx_t j = 0; j < nordervtx[k][i]; ++j) {
         // Set the model index
         vtxmodidx[jvtxidx] = vertices[i].modidx;
+        vtxordidx[jvtxidx] = xordervtx[k][i] + j;
         edgmodidx[jvtxidx].clear();
         // Generate coordinates
         if (vertices[i].shape == VTXSHAPE_CIRCLE) {
@@ -383,13 +401,13 @@ void GeNet::Connect(mConn *msg) {
                             (xyz[i*3+2]-xyz[j*3+2])*(xyz[i*3+2]-xyz[j*3+2]));
           idx_t modidx;
           // check possible connections from i to j
-          if ((modidx = MakeConnection(vtxmodidx[i], vtxmodidx[j], distance))) {
+          if ((modidx = MakeConnection(vtxmodidx[i], vtxmodidx[j], vtxordidx[i], vtxordidx[j], distance))) {
             // add first connection
             adjcyconn[datidx][i].push_back(j);
             edgmodidxconn[datidx][i].push_back(modidx);
           }
           // check possible connections from j to i
-          if ((modidx = MakeConnection(vtxmodidx[j], vtxmodidx[i], distance))) {
+          if ((modidx = MakeConnection(vtxmodidx[j], vtxmodidx[i], vtxordidx[j], vtxordidx[i], distance))) {
             // add second connection if it's not there
             if (adjcyconn[datidx][i].size()) {
               if (adjcyconn[datidx][i].back() != j) {
@@ -433,12 +451,12 @@ void GeNet::Connect(mConn *msg) {
                           (xyz[i*3+2]-msg->xyz[j*3+2])*(xyz[i*3+2]-msg->xyz[j*3+2]));
         idx_t modidx;
         // check possible connections from i to j
-        if ((modidx = MakeConnection(vtxmodidx[i], msg->vtxmodidx[j], distance))) {
+        if ((modidx = MakeConnection(vtxmodidx[i], msg->vtxmodidx[j], vtxordidx[i], msg->vtxordidx[j], distance))) {
           adjcyconn[msg->datidx][i].push_back(j);
           edgmodidxconn[msg->datidx][i].push_back(modidx);
         }
         // check possible connections from j to i
-        if ((modidx = MakeConnection(msg->vtxmodidx[j], vtxmodidx[i], distance))) {
+        if ((modidx = MakeConnection(msg->vtxmodidx[j], vtxmodidx[i], msg->vtxordidx[j], vtxordidx[i], distance))) {
           if (adjcyconn[msg->datidx][i].size()) {
             if (adjcyconn[msg->datidx][i].back() != j) {
               adjcyconn[msg->datidx][i].push_back(j);
@@ -548,10 +566,11 @@ mConn* GeNet::BuildPrevConn(idx_t reqidx) {
   // Initialize connection message
   int msgSize[MSG_Conn];
   msgSize[0] = 0;           // vtxmodidx
-  msgSize[1] = norderdat*3; // xyz
-  msgSize[2] = norderdat+1; // xadj
-  msgSize[3] = nsizedat;    // adjcy
-  msgSize[4] = nsizedat;    // edgmodidx
+  msgSize[1] = 0;           // vtxordidx
+  msgSize[2] = norderdat*3; // xyz
+  msgSize[3] = norderdat+1; // xadj
+  msgSize[4] = nsizedat;    // adjcy
+  msgSize[5] = nsizedat;    // edgmodidx
   mConn *mconn = new(msgSize, 0) mConn;
   // Sizes
   mconn->datidx = datidx;
@@ -588,10 +607,11 @@ mConn* GeNet::BuildCurrConn() {
   // Initialize connection message
   int msgSize[MSG_Conn];
   msgSize[0] = 0;     // vtxmodidx
-  msgSize[1] = 0;     // xyz
-  msgSize[2] = 0;     // xadj
-  msgSize[3] = 0;     // adjcy
-  msgSize[4] = 0;     // edgmodidx
+  msgSize[1] = 0;     // vtxordidx
+  msgSize[2] = 0;     // xyz
+  msgSize[3] = 0;     // xadj
+  msgSize[4] = 0;     // adjcy
+  msgSize[5] = 0;     // edgmodidx
   mConn *mconn = new(msgSize, 0) mConn;
   // Sizes
   mconn->datidx = datidx;
@@ -606,10 +626,11 @@ mConn* GeNet::BuildNextConn() {
   // Initialize connection message
   int msgSize[MSG_Conn];
   msgSize[0] = norderdat;   // vtxmodidx
-  msgSize[1] = norderdat*3; // xyz
-  msgSize[2] = 0;           // xadj
-  msgSize[3] = 0;           // adjcy
-  msgSize[4] = 0;           // edgmodidx
+  msgSize[1] = norderdat;   // vtxordidx
+  msgSize[2] = norderdat*3; // xyz
+  msgSize[3] = 0;           // xadj
+  msgSize[4] = 0;           // adjcy
+  msgSize[5] = 0;           // edgmodidx
   mConn *mconn = new(msgSize, 0) mConn;
   // Sizes
   mconn->datidx = datidx;
@@ -618,6 +639,7 @@ mConn* GeNet::BuildNextConn() {
   // Build message
   for (idx_t i = 0; i < norderdat; ++i) {
     mconn->vtxmodidx[i] = vtxmodidx[i];
+    mconn->vtxordidx[i] = vtxordidx[i];
     mconn->xyz[i*3+0] = xyz[i*3+0];
     mconn->xyz[i*3+1] = xyz[i*3+1];
     mconn->xyz[i*3+2] = xyz[i*3+2];
@@ -631,7 +653,7 @@ mConn* GeNet::BuildNextConn() {
 * Connection Construction
 **************************************************************************/
 
-idx_t GeNet::MakeConnection(idx_t source, idx_t target, real_t dist) {
+idx_t GeNet::MakeConnection(idx_t source, idx_t target, idx_t sourceidx, idx_t targetidx, real_t dist) {
   // Go through edges to find the right connection
   // TODO: Use an unordered map to do the connection matching
   for (std::size_t i = 0; i < edges.size(); ++i) {
@@ -642,15 +664,19 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, real_t dist) {
           if (dist > edges[i].cutoff) {
             return 0;
           }
-          // Threshold computation
-          real_t thresh = 0.0;
+          // Connection computation
+          real_t prob = 0.0;
+          idx_t mask = 0;
           for (std::size_t k = 0; k < edges[i].conntype.size(); ++k) {
             if (edges[i].conntype[k] == CONNTYPE_UNIF) {
-              thresh += edges[i].connparam[k][0];
+              prob += edges[i].probparam[k][0];
             }
             else if (edges[i].conntype[k] == CONNTYPE_SIG) {
-              thresh += sigmoid(dist, edges[i].connparam[k][0],
-                        edges[i].connparam[k][1], edges[i].connparam[k][2]);
+              prob += sigmoid(dist, edges[i].probparam[k][0],
+                        edges[i].probparam[k][1], edges[i].probparam[k][2]);
+            }
+            else if (edges[i].conntype[k] == CONNTYPE_IDX) {
+              mask += (((sourceidx * edges[i].maskparam[k][2]) + edges[i].maskparam[k][3]) == targetidx);
             }
             else {
               // Shouldn't reach here due to prior error checking
@@ -659,7 +685,7 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, real_t dist) {
             }
           }
           // Compute probability of connection
-          if (((*unifdist)(rngine)) < thresh) {
+          if ((((*unifdist)(rngine)) < prob) || mask) {
             return edges[i].modidx;
           }
           else {
