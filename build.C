@@ -42,6 +42,10 @@ void GeNet::Build(mGraph *msg) {
     for (std::size_t j = 0; j < vertices[i].param.size(); ++j) {
       vertices[i].param[j] = msg->vtxparam[jvtxparam++];
     }
+    vertices[i].coord.resize(3);
+    vertices[i].coord[0] = msg->vtxcoord[i*3+0];
+    vertices[i].coord[1] = msg->vtxcoord[i*3+1];
+    vertices[i].coord[2] = msg->vtxcoord[i*3+2];
   }
   // Sanity check
   CkAssert(jvtxparam == msg->nvtxparam);
@@ -169,13 +173,19 @@ void GeNet::Build(mGraph *msg) {
         vtxordidx[jvtxidx] = xordervtx[k][i] + j;
         edgmodidx[jvtxidx].clear();
         // Generate coordinates
-        if (vertices[i].shape == VTXSHAPE_CIRCLE) {
+        if (vertices[i].shape == VTXSHAPE_POINT) {
+          // at a point
+          xyz[jvtxidx*3+0] = vertices[i].coord[0];
+          xyz[jvtxidx*3+1] = vertices[i].coord[1];
+          xyz[jvtxidx*3+2] = vertices[i].coord[2];
+        }
+        else if (vertices[i].shape == VTXSHAPE_CIRCLE) {
           // uniformly inside circle
           real_t t = 2*M_PI*((*unifdist)(rngine));
           real_t r = vertices[i].param[0] * std::sqrt((*unifdist)(rngine));
-          xyz[jvtxidx*3+0] = r*std::cos(t);
-          xyz[jvtxidx*3+1] = r*std::sin(t);
-          xyz[jvtxidx*3+2] = 0;
+          xyz[jvtxidx*3+0] = vertices[i].coord[0] + r*std::cos(t);
+          xyz[jvtxidx*3+1] = vertices[i].coord[1] + r*std::sin(t);
+          xyz[jvtxidx*3+2] = vertices[i].coord[2] + 0;
         }
         else if (vertices[i].shape == VTXSHAPE_SPHERE) {
           // uniformly inside sphere
@@ -184,9 +194,9 @@ void GeNet::Build(mGraph *msg) {
           real_t y = ((*normdist)(rngine));
           real_t z = ((*normdist)(rngine));
           real_t r = vertices[i].param[0] * std::cbrt(u) / std::sqrt(x*x+y*y+z*z);
-          xyz[jvtxidx*3+0] = r*x;
-          xyz[jvtxidx*3+1] = r*y;
-          xyz[jvtxidx*3+2] = r*z;
+          xyz[jvtxidx*3+0] = vertices[i].coord[0] + r*x;
+          xyz[jvtxidx*3+1] = vertices[i].coord[1] + r*y;
+          xyz[jvtxidx*3+2] = vertices[i].coord[2] + r*z;
         }
         // Increment for the next vertex
         ++jvtxidx;
@@ -207,7 +217,7 @@ void GeNet::Build(mGraph *msg) {
     // 0 is reserved for 'none' edge type
     CkAssert(vtxmodidx[i] > 0);
     idx_t modidx = vtxmodidx[i] - 1;
-    CkAssert(models[modidx].type == GRAPHTYPE_VTX);
+    CkAssert(models[modidx].type == GRAPHTYPE_VTX || models[modidx].type == GRAPHTYPE_STR);
     // Allocate space for states
     std::vector<real_t> rngstate;
     std::vector<tick_t> rngstick;
@@ -661,7 +671,7 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, idx_t sourceidx, idx_t t
       for (std::size_t j = 0; j < edges[i].target.size(); ++j) {
         if (target == edges[i].target[j]) {
           // test for cutoff
-          if (dist > edges[i].cutoff) {
+          if (edges[i].cutoff != 0.0 && dist > edges[i].cutoff) {
             return 0;
           }
           // Connection computation

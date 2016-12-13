@@ -111,6 +111,7 @@ int Main::ReadModel() {
   
   // Graph types
   graphtype.resize(GRAPHTYPE_NTYPE);
+  graphtype[GRAPHTYPE_STR] = std::string("stream");
   graphtype[GRAPHTYPE_VTX] = std::string("vertex");
   graphtype[GRAPHTYPE_EDG] = std::string("edge");
 
@@ -126,7 +127,10 @@ int Main::ReadModel() {
       return 1;
     }
     // Set type
-    if (type == "vertex") {
+    if (type == "stream") {
+      models[i].type = GRAPHTYPE_STR;
+    }
+    else if (type == "vertex") {
       models[i].type = GRAPHTYPE_VTX;
     }
     else if (type == "edge") {
@@ -513,16 +517,55 @@ int Main::ReadGraph() {
     return 1;
   }
 
-  // Vertices
+  // Streams and vertices
+  YAML::Node stream = graphfile["stream"];
   YAML::Node vertex = graphfile["vertex"];
-  if (vertex.size() == 0) {
+  if (vertex.size() + stream.size() == 0) {
     CkPrintf("  error: graph has no vertices\n");
     return 1;
   }
 
   // preallocate space
+  idx_t jvtx = 0;
+  idx_t nvtx = vertex.size() + stream.size();
   vertices.clear();
-  vertices.resize(vertex.size());
+  vertices.resize(nvtx);
+  
+  // loop through the streams
+  for (std::size_t i = 0; i < stream.size(); ++i) {
+    std::string name;
+    try {
+      // modname
+      name = stream[i]["modname"].as<std::string>();
+    } catch (YAML::RepresentationException& e) {
+      CkPrintf("  stream modname: %s\n", e.what());
+      return 1;
+    }
+    if (modmap.find(name) == modmap.end()) {
+      CkPrintf("  error: model %s not defined\n", name.c_str());
+      return 1;
+    }
+    else {
+      vertices[jvtx].modidx = modmap[name];
+    }
+    // order
+    vertices[jvtx].order = 1;
+    // shape
+    vertices[jvtx].shape = VTXSHAPE_POINT;
+    vertices[jvtx].param.resize(VTXPARAM_POINT);
+    try {
+      // coord
+      vertices[jvtx].coord = stream[i]["coord"].as<std::vector<real_t>>();
+    } catch (YAML::RepresentationException& e) {
+      CkPrintf("  warning: coord not defined, defaulting to [0.0, 0.0, 0.0]\n");
+      vertices[jvtx].coord = {0.0, 0.0, 0.0};
+    }
+    if (vertices[jvtx].coord.size() != 3) {
+      CkPrintf("  error: stream coord dimensions\n");
+      return 1;
+    }
+    ++jvtx;
+  }
 
   // loop through the vertices
   for (std::size_t i = 0; i < vertex.size(); ++i) {
@@ -539,11 +582,11 @@ int Main::ReadGraph() {
       return 1;
     }
     else {
-      vertices[i].modidx = modmap[name];
+      vertices[jvtx].modidx = modmap[name];
     }
     try {
       // order
-      vertices[i].order = vertex[i]["order"].as<idx_t>();
+      vertices[jvtx].order = vertex[i]["order"].as<idx_t>();
     } catch (YAML::RepresentationException& e) {
       CkPrintf("  vertex order: %s\n", e.what());
       return 1;
@@ -555,23 +598,27 @@ int Main::ReadGraph() {
       CkPrintf("  vertex shape: %s\n", e.what());
       return 1;
     }
-    if (name == "circle") {
-      vertices[i].shape = VTXSHAPE_CIRCLE;
-      vertices[i].param.resize(VTXPARAM_CIRCLE);
+    if (name == "point") {
+      vertices[jvtx].shape = VTXSHAPE_POINT;
+      vertices[jvtx].param.resize(VTXPARAM_POINT);
+    }
+    else if (name == "circle") {
+      vertices[jvtx].shape = VTXSHAPE_CIRCLE;
+      vertices[jvtx].param.resize(VTXPARAM_CIRCLE);
       try {
         // radius
-        vertices[i].param[0] = vertex[i]["radius"].as<real_t>();
+        vertices[jvtx].param[0] = vertex[i]["radius"].as<real_t>();
       } catch (YAML::RepresentationException& e) {
         CkPrintf("  vertex circle radius: %s\n", e.what());
         return 1;
       }
     }
     else if (name == "sphere") {
-      vertices[i].shape = VTXSHAPE_SPHERE;
-      vertices[i].param.resize(VTXPARAM_SPHERE);
+      vertices[jvtx].shape = VTXSHAPE_SPHERE;
+      vertices[jvtx].param.resize(VTXPARAM_SPHERE);
       try {
         // radius
-        vertices[i].param[0] = vertex[i]["radius"].as<real_t>();
+        vertices[jvtx].param[0] = vertex[i]["radius"].as<real_t>();
       } catch (YAML::RepresentationException& e) {
         CkPrintf("  vertex circle radius: %s\n", e.what());
         return 1;
@@ -581,8 +628,21 @@ int Main::ReadGraph() {
       CkPrintf("  error: '%s' unknown shape\n", name.c_str());
       return 1;
     }
+    try {
+      // coord
+      vertices[jvtx].coord = vertex[i]["coord"].as<std::vector<real_t>>();
+    } catch (YAML::RepresentationException& e) {
+      CkPrintf("  warning: coord not defined, defaulting to [0.0, 0.0, 0.0]\n");
+      vertices[jvtx].coord = {0.0, 0.0, 0.0};
+    }
+    if (vertices[jvtx].coord.size() != 3) {
+      CkPrintf("  error: vertex coord dimensions\n");
+      return 1;
+    }
+    ++jvtx;
   }
-
+  CkAssert(jvtx == nvtx);
+  
   // Edges
   YAML::Node edge = graphfile["edge"];
   if (edge.size() == 0) {

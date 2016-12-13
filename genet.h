@@ -30,10 +30,11 @@
 #include "genet.decl.h"
 
 
-#define GRAPHTYPE_NTYPE 2
+#define GRAPHTYPE_NTYPE 3
 
-#define GRAPHTYPE_VTX   0
-#define GRAPHTYPE_EDG   1
+#define GRAPHTYPE_STR   0
+#define GRAPHTYPE_VTX   1
+#define GRAPHTYPE_EDG   2
 
 #define RNGTYPE_NRNG    9
 #define REPTYPE_REAL    0
@@ -59,10 +60,12 @@
 #define RNGPARAM_UBLIN  3
 #define RNGPARAM_BLIN   4
 
-#define VTXSHAPE_CIRCLE 0
-#define VTXSHAPE_SPHERE 1
+#define VTXSHAPE_POINT  0
+#define VTXSHAPE_CIRCLE 1
+#define VTXSHAPE_SPHERE 2
 
-#define VTXPARAM_CIRCLE 1 // TODO: something like point of origin
+#define VTXPARAM_POINT  0
+#define VTXPARAM_CIRCLE 1
 #define VTXPARAM_SPHERE 1
 
 #define CONNTYPE_UNIF   0
@@ -108,7 +111,7 @@ class mModel : public CMessage_mModel {
     idx_t nstickparam;
 };
 
-#define MSG_Graph 16
+#define MSG_Graph 17
 class mGraph : public CMessage_mGraph {
   public:
     idx_t *vtxmodidx;     // Which vertex to build (modidx from modmap)
@@ -116,6 +119,7 @@ class mGraph : public CMessage_mGraph {
     idx_t *vtxshape;      // What shape to build vertices
     idx_t *xvtxparam;     // shape parameters prefix
     real_t *vtxparam;     // shape parameters
+    real_t *vtxcoord;     // coordinate parameters
     idx_t *edgsource;     // source modidx of edge
     idx_t *xedgtarget;    // target prefix
     idx_t *edgtarget;     // target modidx of edge
@@ -213,6 +217,7 @@ struct vertex_t {
   idx_t order;
   idx_t shape;
   std::vector<real_t> param;
+  std::vector<real_t> coord;
 };
 
 // Edges

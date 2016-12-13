@@ -29,6 +29,7 @@ mainmodule genet {
     idx_t vtxshape[];
     idx_t xvtxparam[];
     real_t vtxparam[];
+    real_t vtxcoord[];
     idx_t edgsource[];
     idx_t xedgtarget[];
     idx_t edgtarget[];

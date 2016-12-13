@@ -114,6 +114,7 @@ mModel* Main::BuildModel() {
 //
 mGraph* Main::BuildGraph() {
   /* Bookkeeping */
+  idx_t nvtx;
   idx_t nvtxparam;
   idx_t jvtxparam;
   idx_t nedgtarget;
@@ -150,17 +151,18 @@ mGraph* Main::BuildGraph() {
   msgSize[2] = vertices.size();   // vtxshape
   msgSize[3] = vertices.size()+1; // xvtxparam
   msgSize[4] = nvtxparam;         // vtxparam
-  msgSize[5] = edges.size();      // edgsource
-  msgSize[6] = edges.size()+1;    // xedgtarget
-  msgSize[7] = nedgtarget;        // edgtarget
-  msgSize[8] = edges.size();      // edgmodidx
-  msgSize[9] = edges.size();      // edgcutoff
-  msgSize[10] = edges.size()+1;   // xedgconntype
-  msgSize[11] = nedgconntype;     // edgconntype
-  msgSize[12] = nedgconntype;     // medgprobparam
-  msgSize[13] = nedgprobparam;    // edgprobparam
-  msgSize[14] = nedgconntype;     // medgmaskparam
-  msgSize[15] = nedgmaskparam;    // edgmaskparam
+  msgSize[5] = vertices.size()*3; // vtxcoord
+  msgSize[6] = edges.size();      // edgsource
+  msgSize[7] = edges.size()+1;    // xedgtarget
+  msgSize[8] = nedgtarget;        // edgtarget
+  msgSize[9] = edges.size();      // edgmodidx
+  msgSize[10] = edges.size();     // edgcutoff
+  msgSize[11] = edges.size()+1;   // xedgconntype
+  msgSize[12] = nedgconntype;     // edgconntype
+  msgSize[13] = nedgconntype;     // medgprobparam
+  msgSize[14] = nedgprobparam;    // edgprobparam
+  msgSize[15] = nedgconntype;     // medgmaskparam
+  msgSize[16] = nedgmaskparam;    // edgmaskparam
   mGraph *mgraph = new(msgSize, 0) mGraph;
   // Sizes
   mgraph->nvtx = vertices.size();
@@ -177,7 +179,7 @@ mGraph* Main::BuildGraph() {
   // set up counters
   jvtxparam = 0;
 
-  // Vertices
+  // Streams and Vertices
   for (std::size_t i = 0; i < vertices.size(); ++i) {
     mgraph->vtxmodidx[i] = vertices[i].modidx;
     mgraph->vtxorder[i] = vertices[i].order;
