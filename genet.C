@@ -397,7 +397,10 @@ GeNet::GeNet(mModel *msg) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  CkPrintf("GaNet PE: %d   MPI: %d/%d\n", datidx, world_rank, world_size);
+  char processor_name[MPI_MAX_PROCESSOR_NAME];
+  int name_len;
+  MPI_Get_processor_name(processor_name, &name_len);
+  CkPrintf("GeNet PE: %d   MPI: %d/%d (%s)\n", datidx, world_rank, world_size, processor_name);
   
   // Initialize coordination lists
   adjcyreq.clear();

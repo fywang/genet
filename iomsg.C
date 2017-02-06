@@ -114,7 +114,6 @@ mModel* Main::BuildModel() {
 //
 mGraph* Main::BuildGraph() {
   /* Bookkeeping */
-  idx_t nvtx;
   idx_t nvtxparam;
   idx_t jvtxparam;
   idx_t nedgtarget;
