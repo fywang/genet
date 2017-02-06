@@ -97,6 +97,16 @@ void GeNet::Build(mGraph *msg) {
     for (std::size_t i = 0; i < vertices.size(); ++i) {
       CkPrintf("Vertex: %" PRIidx "   Order: %" PRIidx"\n", vertices[i].modidx, vertices[i].order);
     }
+    for (std::size_t i = 0; i < edges.size(); ++i) {
+      std::string edgetargets;
+      // collect edgetargets
+      for (std::size_t j = 0; j < edges[i].target.size(); ++j) {
+        std::ostringstream edgetarget;
+        edgetarget << " " << edges[i].target[j];
+        edgetargets.append(edgetarget.str());
+      }
+      CkPrintf("Edges:  %" PRIidx "   Source: %" PRIidx"   Targets:%s\n", edges[i].modidx, edges[i].source, edgetargets.c_str());
+    }
   }
 
   // Bookkeeping to see how much each chare builds

@@ -672,6 +672,7 @@ int Main::ReadGraph() {
     else {
       edges[i].source = modmap[name];
     }
+    edges[i].target.clear();
     try {
       // target(s)
       names = edge[i]["target"].as<std::vector<std::string>>();

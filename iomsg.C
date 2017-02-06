@@ -188,6 +188,9 @@ mGraph* Main::BuildGraph() {
     for (std::size_t j = 0; j < vertices[i].param.size(); ++j) {
       mgraph->vtxparam[jvtxparam++] = vertices[i].param[j];
     }
+    mgraph->vtxcoord[i*3+0] = vertices[i].coord[0];
+    mgraph->vtxcoord[i*3+1] = vertices[i].coord[1];
+    mgraph->vtxcoord[i*3+2] = vertices[i].coord[2];
   }
   // sanity check
   CkAssert(jvtxparam == nvtxparam);
