@@ -62,7 +62,7 @@ param:
   - name: rng
     value: 1000
   - name: ampl
-    value: 18
+    value: 20
 ...
 
 ---
@@ -89,10 +89,17 @@ state:
   - name: wdelta
     type: constant
     value: 0.0
-  - name: trace
+  - name: ptrace
     type: constant
     value: 0.0
-  - name: tlast
+  - name: ntrace
+    type: constant
+    value: 0.0
+  - name: ptlast
+    type: constant
+    rep: tick
+    value: 0.0
+  - name: ntlast
     type: constant
     rep: tick
     value: 0.0
