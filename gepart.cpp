@@ -104,21 +104,38 @@ int GeNet_Partition(int argc, char ** argv) {
     }
 
     // Get configuration
+    // Network data directory
+    std::string filedir;
+    try {
+      filedir = config["filedir"].as<std::string>();
+    } catch (YAML::RepresentationException& e) {
+      printf("  filedir: %s\n", e.what());
+      return 1;
+    }
     // Network data file
     try {
       filebase = config["filebase"].as<std::string>();
-      if (filebase.size() && filebase.size()+16 < FILENAMESIZE) {
-        std::strncpy(filename, filebase.c_str(), filebase.size());
-        filename[filebase.size()] = '\0';
-      }
-      else {
-        printf("  filebase too long: %s\n"
-               "  max filename size: %d\n",
-               filebase.c_str(), FILENAMESIZE);
-      }
     } catch (YAML::RepresentationException& e) {
       printf("  filebase: %s\n", e.what());
       return 1;
+    }
+    // Get full filename
+    if ((filedir.size() + filebase.size()) && (filedir.size() + filebase.size() + 16) < FILENAMESIZE) {
+      if (filedir.size()) {
+        std::strncpy(filename, filedir.c_str(), filedir.size());
+        filename[filedir.size()] = '/';
+        std::strncpy(filename+filedir.size()+1, filebase.c_str(), filebase.size());
+        filename[filedir.size()+1+filebase.size()] = '\0';
+      }
+      else {
+        std::strncpy(filename, filebase.c_str(), filebase.size());
+        filename[filebase.size()] = '\0';
+      }
+    }
+    else {
+      printf("  filename too long: %s/%s\n"
+          "  max filename size: %d\n",
+          filedir.c_str(), filebase.c_str(), FILENAMESIZE);
     }
     // Number of data files
     try {
@@ -310,7 +327,7 @@ int GeNet_Partition(int argc, char ** argv) {
 
   // Write partitioning
   //
-  sprintf(filename,"%s.part.%d",filebase.c_str(),datidx);
+  sprintf(filename,"%s.part.%d", filebase.c_str(),datidx);
   pPart = fopen(filename,"w");
   if (pPart == NULL) {
     printf("Error opening partition file\n");

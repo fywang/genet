@@ -15,6 +15,7 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
+extern /*readonly*/ std::string filedir;
 extern /*readonly*/ std::string filebase;
 extern /*readonly*/ std::string filemod;
 extern /*readonly*/ idx_t npdat;
@@ -40,6 +41,13 @@ int Main::ParseConfig(std::string configfile) {
   }
 
   // Get configuration
+  // Network data directory
+  try {
+    filedir = config["filedir"].as<std::string>();
+  } catch (YAML::RepresentationException& e) {
+    CkPrintf("  filedir: %s\n", e.what());
+    return 1;
+  }
   // Network data file
   try {
     filebase = config["filebase"].as<std::string>();
@@ -94,10 +102,10 @@ int Main::ParseConfig(std::string configfile) {
 //
 int Main::ReadModel() {
   // Load model file
-  CkPrintf("Loading models from %s.model\n", filebase.c_str());
+  CkPrintf("Loading models from %s/%s.model\n", filedir.c_str(), filebase.c_str());
   YAML::Node modfile;
   try {
-    modfile = YAML::LoadAllFromFile(filebase + ".model");
+    modfile = YAML::LoadAllFromFile(filedir + "/" + filebase + ".model");
   } catch (YAML::BadFile& e) {
     CkPrintf("  %s\n", e.what());
     return 1;
@@ -508,10 +516,10 @@ int Main::ReadModel() {
 //
 int Main::ReadGraph() {
   // Load model file
-  CkPrintf("Loading graph from %s.graph\n", filebase.c_str());
+  CkPrintf("Loading graph from %s/%s.graph\n", filedir.c_str(), filebase.c_str());
   YAML::Node graphfile;
   try {
-    graphfile = YAML::LoadFile(filebase + ".graph");
+    graphfile = YAML::LoadFile(filedir + "/" + filebase + ".graph");
   } catch (YAML::BadFile& e) {
     CkPrintf("  %s\n", e.what());
     return 1;

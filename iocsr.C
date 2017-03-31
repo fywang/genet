@@ -15,6 +15,7 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
+extern /*readonly*/ std::string filedir;
 extern /*readonly*/ std::string filebase;
 extern /*readonly*/ std::string filemod;
 extern /*readonly*/ idx_t npdat;
@@ -82,15 +83,15 @@ void GeNet::Read(mMetis *msg) {
   line = new char[MAXLINE];
 
   // Open files for reading
-  sprintf(csrfile, "%s.part.%" PRIidx "", filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.part.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
   pPart = fopen(csrfile,"r");
-  sprintf(csrfile, "%s.coord.%" PRIidx "", filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.coord.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
   pCoord = fopen(csrfile,"r");
-  sprintf(csrfile, "%s.adjcy.%" PRIidx "", filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.adjcy.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
   pAdjcy = fopen(csrfile,"r");
-  sprintf(csrfile, "%s.state.%" PRIidx "", filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.state.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
   pState = fopen(csrfile,"r");
-  sprintf(csrfile, "%s.event.%" PRIidx "", filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.event.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
   pEvent = fopen(csrfile,"r");
   if (pPart == NULL || pCoord == NULL || pAdjcy == NULL ||
       pState == NULL || pEvent == NULL || line == NULL) {
@@ -301,13 +302,13 @@ void GeNet::Write(const CkCallback &cb) {
   char csrfile[100];
 
   // Open files for writing
-  sprintf(csrfile, "%s.coord.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.coord.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
   pCoord = fopen(csrfile,"w");
-  sprintf(csrfile, "%s.adjcy.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.adjcy.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
   pAdjcy = fopen(csrfile,"w");
-  sprintf(csrfile, "%s.state.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.state.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
   pState = fopen(csrfile,"w");
-  sprintf(csrfile, "%s.event.%" PRIidx "%s", filebase.c_str(), datidx, filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.event.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
   pEvent = fopen(csrfile,"w");
   if (pCoord == NULL || pAdjcy == NULL || pState == NULL || pEvent == NULL) {
     CkPrintf("Error opening files for writing %" PRIidx "\n", datidx);
@@ -418,7 +419,7 @@ int Main::ReadMetis() {
   line = new char[MAXLINE];
   
   // Open files for reading
-  sprintf(csrfile, "%s.metis", filebase.c_str());
+  sprintf(csrfile, "%s/%s.metis", filedir.c_str(), filebase.c_str());
   pMetis = fopen(csrfile,"r");
   if (pMetis == NULL || line == NULL) {
     CkPrintf("Error opening file for reading\n");
@@ -463,9 +464,9 @@ int Main::WriteDist() {
   idx_t nevent;
 
   // Open File
-  sprintf(csrfile, "%s.dist%s", filebase.c_str(), filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.dist", filedir.c_str(), filebase.c_str(), filemod.c_str());
   pDist = fopen(csrfile,"w");
-  sprintf(csrfile, "%s.metis%s", filebase.c_str(), filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.metis", filedir.c_str(), filebase.c_str(), filemod.c_str());
   pMetis = fopen(csrfile,"w");
   if (pDist == NULL || pMetis == NULL) {
     CkPrintf("Error opening file for writing\n");

@@ -10,6 +10,7 @@
 * Charm++ Read-Only Variables
 **************************************************************************/
 /*readonly*/ CProxy_Main mainProxy;
+/*readonly*/ std::string filedir;
 /*readonly*/ std::string filebase;
 /*readonly*/ std::string filemod;
 /*readonly*/ idx_t npdat;
