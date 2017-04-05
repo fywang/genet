@@ -224,13 +224,16 @@ void GeNet::Read(mMetis *msg) {
       // diffuse
       eventpre.diffuse = strtotick(oldstr, &newstr, 16);
       oldstr = newstr;
-      // target
-      eventpre.target = strtoidx(oldstr, &newstr, 10);
-      oldstr = newstr;
       // type
       idx_t type = strtoidx(oldstr, &newstr, 10);
       oldstr = newstr;
       eventpre.type = type;
+      // source
+      eventpre.source = strtoidx(oldstr, &newstr, 10);
+      oldstr = newstr;
+      // index
+      eventpre.index = strtoidx(oldstr, &newstr, 10);
+      oldstr = newstr;
       // data
       if (type == EVENT_SPIKE) {
         eventpre.data = 0.0;
@@ -374,12 +377,12 @@ void GeNet::Write(const CkCallback &cb) {
       fprintf(pEvent, " %" PRIidx "", event[jvtxidx].size());
       for (std::size_t j = 0; j < event[jvtxidx].size(); ++j) {
         if (event[jvtxidx][j].type == EVENT_SPIKE) {
-          fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx "",
-              event[jvtxidx][j].diffuse, event[jvtxidx][j].target, event[jvtxidx][j].type);
+          fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx " %" PRIidx "",
+              event[jvtxidx][j].diffuse, event[jvtxidx][j].type, event[jvtxidx][j].source, event[jvtxidx][j].index);
         }
         else {
-          fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx " %" PRIrealfull "",
-              event[jvtxidx][j].diffuse, event[jvtxidx][j].target, event[jvtxidx][j].type, event[jvtxidx][j].data);
+          fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx " %" PRIidx " %" PRIrealfull "",
+              event[jvtxidx][j].diffuse, event[jvtxidx][j].type, event[jvtxidx][j].source, event[jvtxidx][j].index, event[jvtxidx][j].data);
         }
       }
 

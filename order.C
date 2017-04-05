@@ -60,9 +60,10 @@ void GeNet::ScatterPart() {
       msgSize[7] = nstick;                        // stick
       msgSize[8] = vtxidxpart[prtidx].size() + 1; // xevent
       msgSize[9] = nevent;                        // diffuse
-      msgSize[10] = nevent;                       // target
-      msgSize[11] = nevent;                       // type
-      msgSize[12] = nevent;                       // data
+      msgSize[10] = nevent;                       // type
+      msgSize[11] = nevent;                       // source
+      msgSize[12] = nevent;                       // index
+      msgSize[13] = nevent;                       // data
       mPart *mpart = new(msgSize, 0) mPart;
       // Sizes
       mpart->datidx = datidx;
@@ -93,7 +94,7 @@ void GeNet::ScatterPart() {
         // xadj
         mpart->xadj[i+1] = mpart->xadj[i] + adjcypart[prtidx][i].size();
         for (std::size_t j = 0; j < adjcypart[prtidx][i].size(); ++j) {
-          // adjcy
+          // adjncy
           mpart->adjcy[jedgidx] = adjcypart[prtidx][i][j];
           // edgmodidx
           mpart->edgmodidx[jedgidx++] = edgmodidxpart[prtidx][i][j];
@@ -103,8 +104,9 @@ void GeNet::ScatterPart() {
         for (std::size_t j = 0; j < eventpart[prtidx][i].size(); ++j) {
           //event
           mpart->diffuse[jevent] = eventpart[prtidx][i][j].diffuse;
-          mpart->target[jevent] = eventpart[prtidx][i][j].target;
           mpart->type[jevent] = eventpart[prtidx][i][j].type;
+          mpart->source[jevent] = eventpart[prtidx][i][j].source;
+          mpart->index[jevent] = eventpart[prtidx][i][j].index;
           mpart->data[jevent++] = eventpart[prtidx][i][j].data;
         }
       }
@@ -207,8 +209,9 @@ void GeNet::GatherPart(mPart *msg) {
     eventorder[prtidx][xvtx+i].resize(msg->xevent[i+1] - msg->xevent[i]);
     for (idx_t e = 0; e < msg->xevent[i+1] - msg->xevent[i]; ++e) {
       eventorder[prtidx][xvtx+i][e].diffuse = msg->diffuse[jevent];
-      eventorder[prtidx][xvtx+i][e].target = msg->target[jevent];
       eventorder[prtidx][xvtx+i][e].type = msg->type[jevent];
+      eventorder[prtidx][xvtx+i][e].source = msg->source[jevent];
+      eventorder[prtidx][xvtx+i][e].index = msg->index[jevent];
       eventorder[prtidx][xvtx+i][e].data = msg->data[jevent++];
     }
   }
@@ -253,7 +256,8 @@ void GeNet::GatherPart(mPart *msg) {
     state.resize(norderdat);
     stick.resize(norderdat);
     event.resize(norderdat);
-    targetorder.resize(norderdat);
+    eventsourceorder.resize(norderdat);
+    eventindexorder.resize(norderdat);
 
     // Go through part data and reorder
     idx_t xvtx = 0;
@@ -281,7 +285,11 @@ void GeNet::GatherPart(mPart *msg) {
         stickreorder[jprt][i] = stickorder[jprt][vtxorder[jprt][i].vtxidxloc];
         // events
         event[xvtx+i] = eventorder[jprt][vtxorder[jprt][i].vtxidxloc];
-        targetorder[xvtx+i].push_back(0);
+        eventsourceorder[xvtx+i].resize(event[xvtx+i].size());
+        for (std::size_t e = 0; e , event[xvtx+i].size(); ++e) {
+          eventsourceorder[xvtx+i][e] = event[xvtx+i][e].source;
+        }
+        eventindexorder[xvtx+i].push_back(0);
       }
 
       // increment xvtx
@@ -332,17 +340,17 @@ void GeNet::Order(mOrder *msg) {
 
   // Check if done reordering
   if (cpdat == npdat) {
-    // retarget events
+    // reindex events
     for (idx_t i = 0; i < norderdat; ++i) {
-      CkAssert(targetorder[i].size() == adjcy[i].size()+1);
+      CkAssert(eventindexorder[i].size() == adjcy[i].size()+1);
       // create map
       std::unordered_map<idx_t, idx_t> oldtonew;
-      for (std::size_t j = 0; j < targetorder[i].size(); ++j) {
-        oldtonew[targetorder[i][j]] = j;
+      for (std::size_t j = 0; j < eventindexorder[i].size(); ++j) {
+        oldtonew[eventindexorder[i][j]] = j;
       }
-      // modify targets
+      // modify index
       for (std::size_t j = 0; j < event[i].size(); ++j) {
-        event[i][j].target = oldtonew[event[i][j].target];
+        event[i][j].index = oldtonew[event[i][j].index];
       }
     }
     // return control to main when done
@@ -385,7 +393,13 @@ void GeNet::Reorder(mOrder *msg) {
           edgorder.back().modidx = edgmodidxreorder[jprt][i][j];
           edgorder.back().state = statereorder[jprt][i][j+1];
           edgorder.back().stick = stickreorder[jprt][i][j+1];
-          edgorder.back().target = j+1;
+          edgorder.back().evtidx = j+1;
+          // resource events
+          for (std::size_t e = 0; e < eventsourceorder[xvtx+i].size(); ++e) {
+            if (eventsourceorder[xvtx+i][e] == adjcyreorder[jprt][i][j]) {
+              event[xvtx+i][e].source = oldtonew[eventsourceorder[xvtx+i][e]];
+            }
+          }
         }
       }
       // sort newly added indices
@@ -396,7 +410,7 @@ void GeNet::Reorder(mOrder *msg) {
         edgmodidx[xvtx+i].push_back(edgorder[j].modidx);
         state[xvtx+i].push_back(edgorder[j].state);
         stick[xvtx+i].push_back(edgorder[j].stick);
-        targetorder[xvtx+i].push_back(edgorder[j].target);
+        eventindexorder[xvtx+i].push_back(edgorder[j].evtidx);
       }
     }
     xvtx += norderprt[jprt];

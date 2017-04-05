@@ -160,7 +160,7 @@ class mMetis : public CMessage_mMetis {
     idx_t *edgdist; // number of edges in data
 };
   
-#define MSG_Part 13
+#define MSG_Part 14
 class mPart : public CMessage_mPart {
   public:
     idx_t *vtxidx;
@@ -173,8 +173,9 @@ class mPart : public CMessage_mPart {
     tick_t *stick;
     idx_t *xevent;
     tick_t *diffuse;
-    idx_t *target;
     idx_t *type;
+    idx_t *source;
+    idx_t *index;
     real_t *data;
     idx_t datidx;
     idx_t prtidx;
@@ -251,8 +252,9 @@ struct dist_t {
 //
 struct event_t {
   tick_t diffuse;
-  idx_t target;
   idx_t type;
+  idx_t source;
+  idx_t index;
   real_t data;
   
   bool operator<(const event_t& event) const {
@@ -278,7 +280,7 @@ struct edgorder_t {
   idx_t modidx;
   std::vector<real_t> state;
   std::vector<tick_t> stick;
-  idx_t target;
+  idx_t evtidx;
   bool operator < (const edgorder_t& edg) const {
     return (edgidx < edg.edgidx);
   }
@@ -510,7 +512,8 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<std::vector<std::vector<tick_t>>>> stickorder; // stick by vertex
     std::vector<std::vector<std::vector<std::vector<tick_t>>>> stickreorder; // stick by vertex
     std::vector<std::vector<std::vector<event_t>>> eventorder; // event by vertex
-    std::vector<std::vector<idx_t>> targetorder; // target reordering
+    std::vector<std::vector<idx_t>> eventsourceorder; // source reordering
+    std::vector<std::vector<idx_t>> eventindexorder; // index reordering
     std::list<mOrder *> ordering;
     /* Bookkeeping */
     idx_t datidx;
