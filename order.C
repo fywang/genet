@@ -286,7 +286,7 @@ void GeNet::GatherPart(mPart *msg) {
         // events
         event[xvtx+i] = eventorder[jprt][vtxorder[jprt][i].vtxidxloc];
         eventsourceorder[xvtx+i].resize(event[xvtx+i].size());
-        for (std::size_t e = 0; e , event[xvtx+i].size(); ++e) {
+        for (std::size_t e = 0; e < event[xvtx+i].size(); ++e) {
           eventsourceorder[xvtx+i][e] = event[xvtx+i][e].source;
         }
         eventindexorder[xvtx+i].push_back(0);
