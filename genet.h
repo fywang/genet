@@ -80,7 +80,7 @@
 #define PROBPARAM_IDX   0
 #define MASKPARAM_IDX   4
 
-#define EVENT_SPIKE     1
+#define EVENT_SPIKE     0
 
 
 /**************************************************************************
