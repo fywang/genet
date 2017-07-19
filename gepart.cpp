@@ -24,7 +24,6 @@
 int GeNet_Partition(int argc, char ** argv) {
   /* MPI */
   int netfiles, datidx;
-  idx_t netparts;
   MPI_Comm comm;
   double tstart, tfinish;
   /* ParMetis */
@@ -36,6 +35,7 @@ int GeNet_Partition(int argc, char ** argv) {
   idx_t *adjcy;
   idx_t *part;
   idx_t edgecut;
+  idx_t netparts;
   idx_t *vwgt;
   idx_t *adjwgt = NULL;
   idx_t wgtflag = 2; // weights on the vertices only
