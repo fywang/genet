@@ -23,7 +23,8 @@
 
 int GeNet_Partition(int argc, char ** argv) {
   /* MPI */
-  int npdat, datidx;
+  int netfiles, datidx;
+  idx_t netparts;
   MPI_Comm comm;
   double tstart, tfinish;
   /* ParMetis */
@@ -35,7 +36,6 @@ int GeNet_Partition(int argc, char ** argv) {
   idx_t *adjcy;
   idx_t *part;
   idx_t edgecut;
-  idx_t npnet;
   idx_t *vwgt;
   idx_t *adjwgt = NULL;
   idx_t wgtflag = 2; // weights on the vertices only
@@ -47,7 +47,7 @@ int GeNet_Partition(int argc, char ** argv) {
   idx_t options[3];  // [0] is flag to use non default values
                      // [1] is information parmetis to output
                      // [2] is the random seed to use
-  idx_t rngseed;
+  idx_t rngmetis;
   /* Sizes */
   idx_t nvtx;
   idx_t nedg;
@@ -65,7 +65,7 @@ int GeNet_Partition(int argc, char ** argv) {
   // Initialize MPI
   //
   MPI_Comm_rank(MPI_COMM_WORLD,&datidx);
-  MPI_Comm_size(MPI_COMM_WORLD,&npdat);
+  MPI_Comm_size(MPI_COMM_WORLD,&netfiles);
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
   // Get command line arguments
@@ -105,11 +105,11 @@ int GeNet_Partition(int argc, char ** argv) {
 
     // Get configuration
     // Network data directory
-    std::string filedir;
+    std::string netwkdir;
     try {
-      filedir = config["filedir"].as<std::string>();
+      netwkdir = config["netwkdir"].as<std::string>();
     } catch (YAML::RepresentationException& e) {
-      printf("  filedir: %s\n", e.what());
+      printf("  netwkdir: %s\n", e.what());
       return 1;
     }
     // Network data file
@@ -120,12 +120,12 @@ int GeNet_Partition(int argc, char ** argv) {
       return 1;
     }
     // Get full filename
-    if ((filedir.size() + filebase.size()) && (filedir.size() + filebase.size() + 16) < FILENAMESIZE) {
-      if (filedir.size()) {
-        std::strncpy(filename, filedir.c_str(), filedir.size());
-        filename[filedir.size()] = '/';
-        std::strncpy(filename+filedir.size()+1, filebase.c_str(), filebase.size());
-        filename[filedir.size()+1+filebase.size()] = '\0';
+    if ((netwkdir.size() + filebase.size()) && (netwkdir.size() + filebase.size() + 16) < FILENAMESIZE) {
+      if (netwkdir.size()) {
+        std::strncpy(filename, netwkdir.c_str(), netwkdir.size());
+        filename[netwkdir.size()] = '/';
+        std::strncpy(filename+netwkdir.size()+1, filebase.c_str(), filebase.size());
+        filename[netwkdir.size()+1+filebase.size()] = '\0';
       }
       else {
         std::strncpy(filename, filebase.c_str(), filebase.size());
@@ -135,40 +135,40 @@ int GeNet_Partition(int argc, char ** argv) {
     else {
       printf("  filename too long: %s/%s\n"
           "  max filename size: %d\n",
-          filedir.c_str(), filebase.c_str(), FILENAMESIZE);
+          netwkdir.c_str(), filebase.c_str(), FILENAMESIZE);
     }
     // Number of data files
     try {
-      idx_t npdatconf = config["npdat"].as<idx_t>();
-      if (npdat != npdatconf) {
-        printf("Error: npdat (%" PRIidx ") does not match MPI_Comm_size (%d)\n"
+      int netfilesconf = config["netfiles"].as<int>();
+      if (netfiles != netfilesconf) {
+        printf("Error: netfiles (%d) does not match MPI_Comm_size (%d)\n"
             "       Use '-np %d' to set %d ranks in MPI\n",
-            npdatconf, npdat, npdat, npdat);
+            netfilesconf, netfiles, netfiles, netfiles);
         return 1;
       }
     } catch (YAML::RepresentationException& e) {
-      printf("  npdat: %s\n", e.what());
+      printf("  netfiles: %s\n", e.what());
       return 1;
     }
     // Number of network parts
     try {
-      npnet = config["npnet"].as<idx_t>();
+      netparts = config["netparts"].as<idx_t>();
     } catch (YAML::RepresentationException& e) {
-      printf("  npnet: %s\n", e.what());
+      printf("  netparts: %s\n", e.what());
       return 1;
     }
     // Random number seed
     try {
-      rngseed = config["rngmetis"].as<idx_t>();
+      rngmetis = config["rngmetis"].as<idx_t>();
     } catch (YAML::RepresentationException& e) {
       std::random_device rd;
-      rngseed = rd();
-      printf("  rngmetis not defined, seeding with: %" PRIidx "\n", rngseed);
+      rngmetis = rd();
+      printf("  rngmetis not defined, seeding with: %" PRIidx "\n", rngmetis);
     }
   }
   // Broadcast configuration
-  MPI_Bcast(&npnet, 1, IDX_T, 0, comm);
-  MPI_Bcast(&rngseed, 1, IDX_T, 0, comm);
+  MPI_Bcast(&netparts, 1, IDX_T, 0, comm);
+  MPI_Bcast(&rngmetis, 1, IDX_T, 0, comm);
   MPI_Bcast(filename, FILENAMESIZE, MPI_CHAR, 0, comm);
   int filesize = 0;
   while (filename[filesize] != '\0') { ++filesize; }
@@ -179,14 +179,14 @@ int GeNet_Partition(int argc, char ** argv) {
     // Display configuration information
     printf("Partition Network for STACS (gepart)\n"
            "Loaded config from %s\n"
-           "  Data Files (npdat):     %d\n"
-           "  Network Parts (npnet):  %" PRIidx "\n",
-           configfile.c_str(), npdat, npnet);
+           "  Data Files (netfiles):     %d\n"
+           "  Network Parts (netparts):  %" PRIidx "\n",
+           configfile.c_str(), netfiles, netparts);
   }
  
   // Vertex and Edge distributions
   //
-  metisdist = new idx_t[(npdat+1)*2];
+  metisdist = new idx_t[(netfiles+1)*2];
   line = new char[MAXLINE]; 
   if (line == NULL) {
     printf("Error allocating line in\n");
@@ -202,7 +202,7 @@ int GeNet_Partition(int argc, char ** argv) {
       MPI_Finalize();
       return 1;
     }
-    for (int i = 0; i < npdat+1; ++i) {
+    for (int i = 0; i < netfiles+1; ++i) {
       while(fgets(line, MAXLINE, pDist) && line[0] == '%');
       oldstr = line;
       newstr = NULL;
@@ -214,11 +214,11 @@ int GeNet_Partition(int argc, char ** argv) {
     }
     fclose(pDist);
   }
-  MPI_Bcast(metisdist, (npdat+1)*2, IDX_T, 0, comm);
+  MPI_Bcast(metisdist, (netfiles+1)*2, IDX_T, 0, comm);
 
   // Set up distributions
-  vtxdist = new idx_t[npdat+1];
-  for (idx_t i = 0; i < npdat+1; ++i) {
+  vtxdist = new idx_t[netfiles+1];
+  for (int i = 0; i < netfiles+1; ++i) {
     vtxdist[i] = metisdist[i*2];
   }
   nvtx = metisdist[(datidx+1)*2] - metisdist[datidx*2];
@@ -228,7 +228,7 @@ int GeNet_Partition(int argc, char ** argv) {
   adjcy = new idx_t[nedg];
   xyz = new real_t[nvtx*ndims];
   vwgt = new idx_t[nvtx];
-  tpwgts = new real_t[npnet];
+  tpwgts = new real_t[netparts];
   part = new idx_t[nvtx];
 
   // Read in Graph Information
@@ -279,13 +279,13 @@ int GeNet_Partition(int argc, char ** argv) {
   fclose(pCoord);
   
   if (datidx == 0) {
-    printf("Network order: %" PRIidx "\n", vtxdist[npdat]);
+    printf("Network order: %" PRIidx "\n", vtxdist[netfiles]);
   }
   
   // Parmetis Balance
   ubvec = 0.0;
-  for (idx_t i = 0; i < npnet; i++) {
-    tpwgts[i] = 1.0/npnet;
+  for (idx_t i = 0; i < netparts; i++) {
+    tpwgts[i] = 1.0/netparts;
     ubvec += tpwgts[i];
   }
   tpwgts[0] += (1.0 - ubvec);
@@ -296,7 +296,7 @@ int GeNet_Partition(int argc, char ** argv) {
   options[1] = PARMETIS_DBGLVL_TIME |
                PARMETIS_DBGLVL_INFO |
                PARMETIS_DBGLVL_PROGRESS; // Debug (timing, matching)
-  options[2] = rngseed; // Random seed
+  options[2] = rngmetis; // Random seed
   
 
   // start timing
@@ -305,7 +305,7 @@ int GeNet_Partition(int argc, char ** argv) {
   // Partition
   metisresult = ParMETIS_V3_PartGeomKway(vtxdist, xadj, adjcy,
                                          vwgt, adjwgt, &wgtflag, &numflag,
-                                         &ndims, xyz, &ncon, &npnet,
+                                         &ndims, xyz, &ncon, &netparts,
                                          tpwgts, &ubvec, options,
                                          &edgecut, part, &comm);
   if (metisresult != METIS_OK) {
@@ -322,7 +322,7 @@ int GeNet_Partition(int argc, char ** argv) {
   // Edge cut for the partition
   if (datidx == 0) {
     printf("edgecut: %" PRIidx "\n", edgecut);
-    printf("%" PRIidx" on %d: %.12e\n", npnet, npdat, tstart/npdat);
+    printf("%" PRIidx " on %d: %.12e\n", netparts, netfiles, tstart/netfiles);
   }
 
   // Write partitioning

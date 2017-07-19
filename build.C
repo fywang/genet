@@ -9,8 +9,8 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
-extern /*readonly*/ idx_t npdat;
-extern /*readonly*/ idx_t npnet;
+extern /*readonly*/ idx_t netparts;
+extern /*readonly*/ int netfiles;
 
 
 /**************************************************************************
@@ -121,20 +121,20 @@ void GeNet::Build(mGraph *msg) {
   }
   idx_t xremvtx = 0;
   for (std::size_t i = 0; i < vertices.size(); ++i) {
-    idx_t ndivvtx = (vertices[i].order)/npnet;
-    idx_t nremvtx = (vertices[i].order)%npnet;
+    idx_t ndivvtx = (vertices[i].order)/netparts;
+    idx_t nremvtx = (vertices[i].order)%netparts;
     for (idx_t k = 0; k < nprt; ++k) {
       // looping integer magic
       nordervtx[k][i] = ndivvtx + (((xprt+k) >= xremvtx && (xprt+k) < nremvtx+xremvtx) ||
-          (nremvtx+xremvtx >= npnet && (xprt+k) < xremvtx && (xprt+k) < (nremvtx+xremvtx)%npnet));
+          (nremvtx+xremvtx >= netparts && (xprt+k) < xremvtx && (xprt+k) < (nremvtx+xremvtx)%netparts));
       xordervtx[k][i] = ndivvtx * (xprt+k);
       // TODO: see if you can get rid of the loop
       for (idx_t j = 0; j < xprt+k; ++j) {
         xordervtx[k][i] += ((j >= xremvtx && j < nremvtx+xremvtx) ||
-            (nremvtx+xremvtx >= npnet && j < xremvtx && j < (nremvtx+xremvtx)%npnet));
+            (nremvtx+xremvtx >= netparts && j < xremvtx && j < (nremvtx+xremvtx)%netparts));
       }
     }
-    xremvtx = (xremvtx+nremvtx)%npnet;
+    xremvtx = (xremvtx+nremvtx)%netparts;
   }
   
   // counting
@@ -163,9 +163,9 @@ void GeNet::Build(mGraph *msg) {
     }
     orderprts.append(" ]");
   }
-  CkPrintf("  Building File: %" PRIidx "   Vertices: %" PRIidx " {%s }\n", datidx, norderdat, orderprts.c_str());
+  CkPrintf("  Building File: %d   Vertices: %" PRIidx " {%s }\n", datidx, norderdat, orderprts.c_str());
 
-  // From here, work in terms of the npdat instead of by npnet
+  // From here, work in terms of the netfiles instead of by netparts
   // But keep in mind the per part artificial splitting
 
   // Create model indices
@@ -288,7 +288,7 @@ void GeNet::Build(mGraph *msg) {
 
   // Prepare for connection
   cpdat = 0;
-  vtxdist.resize(npdat+1);
+  vtxdist.resize(netfiles+1);
   vtxdist[0] = 0;
   adjcy.clear();
   edgmodidx.clear();
@@ -296,9 +296,9 @@ void GeNet::Build(mGraph *msg) {
   edgmodidx.resize(norderdat);
   // Only need to worry about future edges
   adjcyconn.clear();
-  adjcyconn.resize(npdat);
+  adjcyconn.resize(netfiles);
   edgmodidxconn.clear();
-  edgmodidxconn.resize(npdat);
+  edgmodidxconn.resize(netfiles);
 
   if (cpdat < datidx) {
     thisProxy(cpdat).ConnRequest(datidx);
@@ -326,7 +326,7 @@ void GeNet::Connect(mConn *msg) {
   // Sanity check
   CkAssert(msg->datidx == cpdat);
   // Some basic information on what's being connected
-  CkPrintf("  Connecting %" PRIidx " to %" PRIidx "\n", datidx, msg->datidx);
+  CkPrintf("  Connecting %d to %d\n", datidx, msg->datidx);
 
   // Add to vtxdist
   vtxdist[cpdat+1] = vtxdist[cpdat] + msg->nvtx;
@@ -522,7 +522,7 @@ void GeNet::Connect(mConn *msg) {
   // Move to next part
   ++cpdat;
   // return control to main when done
-  if (cpdat == npdat) {
+  if (cpdat == netfiles) {
     contribute(0, NULL, CkReduction::nop);
   }
   // Request data from next part

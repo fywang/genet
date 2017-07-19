@@ -32,6 +32,11 @@ genet
 gepart
 charmrun
 
+# Configuration
+*.yml
+*.model
+*.graph
+
 # Graph Files
 *.dist
 *.metis
@@ -43,3 +48,4 @@ charmrun
 
 # Temporary Files
 *.swp
+.DS_Store

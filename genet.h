@@ -516,8 +516,9 @@ class GeNet : public CBase_GeNet {
     std::vector<std::vector<idx_t>> eventindexorder; // index reordering
     std::list<mOrder *> ordering;
     /* Bookkeeping */
-    idx_t datidx;
-    idx_t cpdat, cpprt;
+    int datidx;
+    int cpdat;
+    idx_t cpprt;
     idx_t nprt, xprt;
     idx_t norder; // total order
     idx_t norderdat; // order per data

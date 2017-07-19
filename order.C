@@ -9,8 +9,8 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
-extern /*readonly*/ idx_t npdat;
-extern /*readonly*/ idx_t npnet;
+extern /*readonly*/ idx_t netparts;
+extern /*readonly*/ int netfiles;
 
 
 /**************************************************************************
@@ -21,10 +21,10 @@ extern /*readonly*/ idx_t npnet;
 //
 void GeNet::ScatterPart() {
   // Compute which part goes to which data
-  for (idx_t datidxpart = 0; datidxpart < npdat; ++datidxpart) {
+  for (int datidxpart = 0; datidxpart < netfiles; ++datidxpart) {
     // Which parts on this data
-    idx_t ndivpart = npnet/npdat;
-    idx_t nrempart = npnet%npdat;
+    idx_t ndivpart = netparts/netfiles;
+    idx_t nrempart = netparts%netfiles;
     idx_t nprtpart = ndivpart + (datidxpart < nrempart);
     idx_t xprtpart = datidxpart*ndivpart + (datidxpart < nrempart ? datidxpart : nrempart);
 
@@ -224,7 +224,7 @@ void GeNet::GatherPart(mPart *msg) {
 
   // When all parts are gathered from all other data,
   // Perform reordering of vertex indices and start reordering
-  if (++cpprt == npdat*nprt) {
+  if (++cpprt == netfiles*nprt) {
     // cleanup finished data structures?
     vtxdistmetis.clear();
     edgdistmetis.clear();
@@ -245,7 +245,7 @@ void GeNet::GatherPart(mPart *msg) {
       orderprt << " " << norderprt[jprt];
       orderprts.append(orderprt.str());
     }
-    CkPrintf("  Reordered File: %" PRIidx "   Vertices: %" PRIidx " {%s }\n",
+    CkPrintf("  Reordered File: %d   Vertices: %" PRIidx " {%s }\n",
              datidx, norderdat, orderprts.c_str());
 
     // set up containers
@@ -339,7 +339,7 @@ void GeNet::Order(mOrder *msg) {
   }
 
   // Check if done reordering
-  if (cpdat == npdat) {
+  if (cpdat == netfiles) {
     // reindex events
     for (idx_t i = 0; i < norderdat; ++i) {
       CkAssert(eventindexorder[i].size() == adjcy[i].size()+1);

@@ -10,12 +10,12 @@
 * Charm++ Read-Only Variables
 **************************************************************************/
 /*readonly*/ CProxy_Main mainProxy;
-/*readonly*/ std::string filedir;
+/*readonly*/ unsigned int randseed;
+/*readonly*/ std::string netwkdir;
+/*readonly*/ idx_t netparts;
+/*readonly*/ int netfiles;
 /*readonly*/ std::string filebase;
-/*readonly*/ std::string filemod;
-/*readonly*/ idx_t npdat;
-/*readonly*/ idx_t npnet;
-/*readonly*/ idx_t rngseed;
+/*readonly*/ std::string filesave;
 
 
 /**************************************************************************
@@ -34,7 +34,7 @@ Main::Main(CkArgMsg* msg) {
   // Command line arguments
   std::string configfile;
   if (msg->argc < 2) {
-    configfile = "config.yml"; // default
+    configfile = "configs/config.yml"; // default
     mode = std::string("build");
   }
   else if (msg->argc == 2) {
@@ -75,10 +75,10 @@ Main::Main(CkArgMsg* msg) {
 
   if (initok) {
     // Basic error check
-    if (npdat != CkNumPes()) {
-      CkPrintf("Error: npdat (%" PRIidx ") does not match CkNumPes (%d)\n"
-               "       Use '+p%" PRIidx "' to set %" PRIidx " PEs in Charm++\n",
-               npdat, CkNumPes(), npdat, npdat);
+    if (netfiles != CkNumPes()) {
+      CkPrintf("Error: netfiles (%d) does not match CkNumPes (%d)\n"
+               "       Use '+p%d' to set %d PEs in Charm++\n",
+               netfiles, CkNumPes(), netfiles, netfiles);
       //CkExit();
       initok = false;
     }
@@ -87,9 +87,9 @@ Main::Main(CkArgMsg* msg) {
   if (initok) {
     // Display configuration information
     CkPrintf("Loaded config from %s\n"
-             "  Data Files (npdat):     %" PRIidx "\n"
-             "  Network Parts (npnet):  %" PRIidx "\n",
-             configfile.c_str(), npdat, npnet);
+             "  Data Files (netfiles):     %" PRIidx "\n"
+             "  Network Parts (netparts):  %" PRIidx "\n",
+             configfile.c_str(), netfiles, netparts);
 
     CkPrintf("Initializing models\n");
   }
@@ -137,7 +137,7 @@ Main::Main(CkArgMsg* msg) {
     mModel *mmodel = BuildModel();
 
     // Set Round Robin Mapping
-    CkArrayOptions opts(npdat);
+    CkArrayOptions opts(netfiles);
     CProxy_RRMap rrMap = CProxy_RRMap::ckNew();
     opts.setMap(rrMap);
 
@@ -249,7 +249,7 @@ void Main::Halt(CkReductionMsg *msg) {
   for (std::size_t i = 0; i < (msg->getSize())/sizeof(dist_t); ++i) {
     netdist.push_back(*((dist_t *)msg->getData()+i));
   }
-  CkAssert(netdist.size() == npnet);
+  CkAssert(netdist.size() == netparts);
   // cleanup
   delete msg;
   
@@ -272,13 +272,13 @@ void Main::Halt(CkReductionMsg *msg) {
 GeNet::GeNet(mModel *msg) {
   // Bookkeeping
   datidx = thisIndex;
-  idx_t ndiv = npnet/npdat;
-  idx_t nrem = npnet%npdat;
+  idx_t ndiv = netparts/netfiles;
+  idx_t nrem = netparts%netfiles;
   nprt = ndiv + (datidx < nrem);
   xprt = datidx*ndiv + (datidx < nrem ? datidx : nrem);
   
   // Set up random number generator
-  rngine.seed(rngseed+datidx);
+  rngine.seed(randseed+datidx);
   unifdist = new std::uniform_real_distribution<real_t> (0.0, 1.0);
   normdist = new std::normal_distribution<real_t> (0.0, 1.0);
 

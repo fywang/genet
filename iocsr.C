@@ -15,11 +15,11 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
-extern /*readonly*/ std::string filedir;
+extern /*readonly*/ std::string netwkdir;
+extern /*readonly*/ idx_t netparts;
+extern /*readonly*/ int netfiles;
 extern /*readonly*/ std::string filebase;
-extern /*readonly*/ std::string filemod;
-extern /*readonly*/ idx_t npdat;
-extern /*readonly*/ idx_t npnet;
+extern /*readonly*/ std::string filesave;
 
 
 /**************************************************************************
@@ -68,9 +68,9 @@ void GeNet::Read(mMetis *msg) {
   char *oldstr, *newstr;
 
   // Copy over metis distributions
-  vtxdistmetis.resize(npdat+1);
-  edgdistmetis.resize(npdat+1);
-  for (idx_t i = 0; i < npdat+1; ++i) {
+  vtxdistmetis.resize(netfiles+1);
+  edgdistmetis.resize(netfiles+1);
+  for (int i = 0; i < netfiles+1; ++i) {
     vtxdistmetis[i] = msg->vtxdist[i];
     edgdistmetis[i] = msg->edgdist[i];
   }
@@ -83,32 +83,36 @@ void GeNet::Read(mMetis *msg) {
   line = new char[MAXLINE];
 
   // Open files for reading
-  sprintf(csrfile, "%s/%s.part.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.part.%d", netwkdir.c_str(), filebase.c_str(), datidx);
   pPart = fopen(csrfile,"r");
-  sprintf(csrfile, "%s/%s.coord.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.coord.%d", netwkdir.c_str(), filebase.c_str(), datidx);
   pCoord = fopen(csrfile,"r");
-  sprintf(csrfile, "%s/%s.adjcy.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.adjcy.%d", netwkdir.c_str(), filebase.c_str(), datidx);
   pAdjcy = fopen(csrfile,"r");
-  sprintf(csrfile, "%s/%s.state.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.state.%d", netwkdir.c_str(), filebase.c_str(), datidx);
   pState = fopen(csrfile,"r");
-  sprintf(csrfile, "%s/%s.event.%" PRIidx "", filedir.c_str(), filebase.c_str(), datidx);
+  sprintf(csrfile, "%s/%s.event.%d", netwkdir.c_str(), filebase.c_str(), datidx);
   pEvent = fopen(csrfile,"r");
   if (pPart == NULL || pCoord == NULL || pAdjcy == NULL ||
-      pState == NULL || pEvent == NULL || line == NULL) {
+      pState == NULL || pEvent == NULL) {
     CkPrintf("Error opening files for reading\n");
+    CkExit();
+  }
+  if (line == NULL) {
+    CkPrintf("Could not allocate memory for lines\n");
     CkExit();
   }
 
   // Initialize sizes
   partmetis.resize(vtxdistmetis[datidx+1] - vtxdistmetis[datidx]);
-  vtxidxpart.resize(npnet);
-  vtxmodidxpart.resize(npnet);
-  xyzpart.resize(npnet);
-  edgmodidxpart.resize(npnet);
-  adjcypart.resize(npnet);
-  statepart.resize(npnet);
-  stickpart.resize(npnet);
-  eventpart.resize(npnet);
+  vtxidxpart.resize(netparts);
+  vtxmodidxpart.resize(netparts);
+  xyzpart.resize(netparts);
+  edgmodidxpart.resize(netparts);
+  adjcypart.resize(netparts);
+  statepart.resize(netparts);
+  stickpart.resize(netparts);
+  eventpart.resize(netparts);
   nsizedat = 0;
   nstatedat = 0;
   nstickdat = 0;
@@ -121,7 +125,7 @@ void GeNet::Read(mMetis *msg) {
     newstr = NULL;
     // partmetis
     partmetis[i] = strtoidx(oldstr, &newstr, 10);
-    CkAssert(partmetis[i] < npnet);
+    CkAssert(partmetis[i] < netparts);
     vtxidxpart[partmetis[i]].push_back(vtxdistmetis[datidx]+i);
     adjcypart[partmetis[i]].push_back(std::vector<idx_t>());
 
@@ -257,7 +261,7 @@ void GeNet::Read(mMetis *msg) {
   delete[] line;
 
   // Print out some information
-  CkPrintf("  File: %" PRIidx "   Vertices: %" PRIidx "   Edges: %" PRIidx "   States: %" PRIidx "   Sticks: %" PRIidx"   Events: %" PRIidx"\n",
+  CkPrintf("  File: %d   Vertices: %" PRIidx "   Edges: %" PRIidx "   States: %" PRIidx "   Sticks: %" PRIidx"   Events: %" PRIidx"\n",
       datidx, partmetis.size(), nsizedat, nstatedat, nstickdat, neventdat);
 
   // Prepare for partitioning
@@ -279,7 +283,7 @@ void GeNet::Read(mMetis *msg) {
   for (idx_t i = 0; i < nprt; ++i) {
     norderprt[i] = 0;
   }
-  vtxdist.resize(npdat+1);
+  vtxdist.resize(netfiles+1);
   vtxdist[0] = 0;
   
   // return control to main
@@ -305,16 +309,16 @@ void GeNet::Write(const CkCallback &cb) {
   char csrfile[100];
 
   // Open files for writing
-  sprintf(csrfile, "%s/%s%s.coord.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s/%s%s.coord.%d", netwkdir.c_str(), filebase.c_str(), filesave.c_str(), datidx);
   pCoord = fopen(csrfile,"w");
-  sprintf(csrfile, "%s/%s%s.adjcy.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s/%s%s.adjcy.%d", netwkdir.c_str(), filebase.c_str(), filesave.c_str(), datidx);
   pAdjcy = fopen(csrfile,"w");
-  sprintf(csrfile, "%s/%s%s.state.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s/%s%s.state.%d", netwkdir.c_str(), filebase.c_str(), filesave.c_str(), datidx);
   pState = fopen(csrfile,"w");
-  sprintf(csrfile, "%s/%s%s.event.%" PRIidx "", filedir.c_str(), filebase.c_str(), filemod.c_str(), datidx);
+  sprintf(csrfile, "%s/%s%s.event.%d", netwkdir.c_str(), filebase.c_str(), filesave.c_str(), datidx);
   pEvent = fopen(csrfile,"w");
   if (pCoord == NULL || pAdjcy == NULL || pState == NULL || pEvent == NULL) {
-    CkPrintf("Error opening files for writing %" PRIidx "\n", datidx);
+    CkPrintf("Error opening files for writing %d\n", datidx);
     CkExit();
   }
   
@@ -374,7 +378,7 @@ void GeNet::Write(const CkCallback &cb) {
 
       // event information
       rdist[k].nevent += event[jvtxidx].size();
-      fprintf(pEvent, " %" PRIidx "", event[jvtxidx].size());
+      fprintf(pEvent, " %d", event[jvtxidx].size());
       for (std::size_t j = 0; j < event[jvtxidx].size(); ++j) {
         if (event[jvtxidx][j].type == EVENT_SPIKE) {
           fprintf(pEvent, " %" PRItickhex " %" PRIidx " %" PRIidx " %" PRIidx "",
@@ -422,18 +426,18 @@ int Main::ReadMetis() {
   line = new char[MAXLINE];
   
   // Open files for reading
-  sprintf(csrfile, "%s/%s.metis", filedir.c_str(), filebase.c_str());
+  sprintf(csrfile, "%s/%s.metis", netwkdir.c_str(), filebase.c_str());
   pMetis = fopen(csrfile,"r");
   if (pMetis == NULL || line == NULL) {
     CkPrintf("Error opening file for reading\n");
     return 1;
   }
 
-  vtxdist.resize(npdat+1);
-  edgdist.resize(npdat+1);
+  vtxdist.resize(netfiles+1);
+  edgdist.resize(netfiles+1);
 
   // Get distribution info
-  for (idx_t i = 0; i < npdat+1; ++i) {
+  for (int i = 0; i < netfiles+1; ++i) {
     while(fgets(line, MAXLINE, pMetis) && line[0] == '%');
     oldstr = line;
     newstr = NULL;
@@ -467,9 +471,9 @@ int Main::WriteDist() {
   idx_t nevent;
 
   // Open File
-  sprintf(csrfile, "%s/%s%s.dist", filedir.c_str(), filebase.c_str(), filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.dist", netwkdir.c_str(), filebase.c_str(), filesave.c_str());
   pDist = fopen(csrfile,"w");
-  sprintf(csrfile, "%s/%s%s.metis", filedir.c_str(), filebase.c_str(), filemod.c_str());
+  sprintf(csrfile, "%s/%s%s.metis", netwkdir.c_str(), filebase.c_str(), filesave.c_str());
   pMetis = fopen(csrfile,"w");
   if (pDist == NULL || pMetis == NULL) {
     CkPrintf("Error opening file for writing\n");
@@ -495,9 +499,9 @@ int Main::WriteDist() {
   // For Metis
   nvtx = nedg = 0;
   fprintf(pMetis, "%" PRIidx " %" PRIidx "\n", nvtx, nedg);
-  for (idx_t datidx = 0; datidx < npdat; ++datidx) {
-    idx_t ndiv = npnet/npdat;
-    idx_t nrem = npnet%npdat;
+  for (int datidx = 0; datidx < netfiles; ++datidx) {
+    idx_t ndiv = netparts/netfiles;
+    idx_t nrem = netparts%netfiles;
     idx_t nprt = ndiv + (datidx < nrem);
     idx_t xprt = datidx*ndiv + (datidx < nrem ? datidx : nrem);
     for (idx_t jprt = 0; jprt < nprt; ++jprt) {

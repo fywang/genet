@@ -10,7 +10,7 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
-extern /*readonly*/ idx_t npdat;
+extern /*readonly*/ int netfiles;
 
 
 /**************************************************************************
@@ -247,11 +247,11 @@ mMetis* Main::BuildMetis() {
   mMetis *mmetis = new(msgSize, 0) mMetis;
 
   // Sanity check
-  CkAssert(vtxdist.size() == npdat+1);
-  CkAssert(edgdist.size() == npdat+1);
+  CkAssert(vtxdist.size() == netfiles+1);
+  CkAssert(edgdist.size() == netfiles+1);
 
   // copy over metis information
-  for (idx_t i = 0; i < npdat+1; ++i) {
+  for (int i = 0; i < netfiles+1; ++i) {
     mmetis->vtxdist[i] = vtxdist[i];
     mmetis->edgdist[i] = edgdist[i];
   }

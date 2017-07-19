@@ -25,13 +25,13 @@ bool partflag;
 //
 int main(int argc, char ** argv) {
   /* MPI */
-  int npdat, datidx;
+  int netfiles, datidx;
   MPI_Comm comm;
   
   // Initialize MPI
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &datidx);
-  MPI_Comm_size(MPI_COMM_WORLD, &npdat);
+  MPI_Comm_size(MPI_COMM_WORLD, &netfiles);
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
   // Initialize Charm++
   doneflag = true;

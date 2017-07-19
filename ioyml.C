@@ -15,12 +15,12 @@
 /**************************************************************************
 * Charm++ Read-Only Variables
 **************************************************************************/
-extern /*readonly*/ std::string filedir;
+extern /*readonly*/ unsigned int randseed;
+extern /*readonly*/ std::string netwkdir;
+extern /*readonly*/ idx_t netparts;
+extern /*readonly*/ int netfiles;
 extern /*readonly*/ std::string filebase;
-extern /*readonly*/ std::string filemod;
-extern /*readonly*/ idx_t npdat;
-extern /*readonly*/ idx_t npnet;
-extern /*readonly*/ idx_t rngseed;
+extern /*readonly*/ std::string filesave;
 
 
 /**************************************************************************
@@ -41,11 +41,33 @@ int Main::ParseConfig(std::string configfile) {
   }
 
   // Get configuration
+  // Random number seed
+  try {
+     randseed = config["randseed"].as<unsigned int>();
+  } catch (YAML::RepresentationException& e) {
+    std::random_device rd;
+    randseed = rd();
+    CkPrintf("  randseed not defined, seeding with: %u\n", randseed);
+  }
   // Network data directory
   try {
-    filedir = config["filedir"].as<std::string>();
+    netwkdir = config["netwkdir"].as<std::string>();
   } catch (YAML::RepresentationException& e) {
-    CkPrintf("  filedir: %s\n", e.what());
+    CkPrintf("  netwkdir: %s\n", e.what());
+    return 1;
+  }
+  // Number of network parts
+  try {
+    netparts = config["netparts"].as<idx_t>();
+  } catch (YAML::RepresentationException& e) {
+    CkPrintf("  netparts: %s\n", e.what());
+    return 1;
+  }
+  // Number of data files
+  try {
+    netfiles = config["netfiles"].as<int>();
+  } catch (YAML::RepresentationException& e) {
+    CkPrintf("  netfiles: %s\n", e.what());
     return 1;
   }
   // Network data file
@@ -56,37 +78,15 @@ int Main::ParseConfig(std::string configfile) {
     return 1;
   }
   if (mode == "build") {
-    filemod = std::string("");
+    filesave = std::string("");
   }
   else {
     try {
-      filemod = config["filemod"].as<std::string>();
+      filesave = config["filesave"].as<std::string>();
     } catch (YAML::RepresentationException& e) {
-      CkPrintf("  filemod not defined, defaulting to: \".o\"\n");
-      filemod = std::string(".o");
+      CkPrintf("  filesave not defined, defaulting to: \".o\"\n");
+      filesave = std::string(".o");
     }
-  }
-  // Number of data files
-  try {
-    npdat = config["npdat"].as<idx_t>();
-  } catch (YAML::RepresentationException& e) {
-    CkPrintf("  npdat: %s\n", e.what());
-    return 1;
-  }
-  // Number of network parts
-  try {
-    npnet = config["npnet"].as<idx_t>();
-  } catch (YAML::RepresentationException& e) {
-    CkPrintf("  npnet: %s\n", e.what());
-    return 1;
-  }
-  // Random number seed
-  try {
-     rngseed = config["rngseed"].as<idx_t>();
-  } catch (YAML::RepresentationException& e) {
-    std::random_device rd;
-    rngseed = rd();
-    CkPrintf("  rngseed not defined, seeding with: %" PRIidx "\n", rngseed);
   }
 
   // Return success
@@ -102,10 +102,10 @@ int Main::ParseConfig(std::string configfile) {
 //
 int Main::ReadModel() {
   // Load model file
-  CkPrintf("Loading models from %s/%s.model\n", filedir.c_str(), filebase.c_str());
+  CkPrintf("Loading models from %s/%s.model\n", netwkdir.c_str(), filebase.c_str());
   YAML::Node modfile;
   try {
-    modfile = YAML::LoadAllFromFile(filedir + "/" + filebase + ".model");
+    modfile = YAML::LoadAllFromFile(netwkdir + "/" + filebase + ".model");
   } catch (YAML::BadFile& e) {
     CkPrintf("  %s\n", e.what());
     return 1;
@@ -516,10 +516,10 @@ int Main::ReadModel() {
 //
 int Main::ReadGraph() {
   // Load model file
-  CkPrintf("Loading graph from %s/%s.graph\n", filedir.c_str(), filebase.c_str());
+  CkPrintf("Loading graph from %s/%s.graph\n", netwkdir.c_str(), filebase.c_str());
   YAML::Node graphfile;
   try {
-    graphfile = YAML::LoadFile(filedir + "/" + filebase + ".graph");
+    graphfile = YAML::LoadFile(netwkdir + "/" + filebase + ".graph");
   } catch (YAML::BadFile& e) {
     CkPrintf("  %s\n", e.what());
     return 1;
