@@ -753,6 +753,9 @@ std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
     else if (models[modidx].statetype[j] == RNGTYPE_BNORM) {
       rngstate[j] = rngbnorm(models[modidx].stateparam[j].data());
     }
+    else if (models[modidx].statetype[j] == RNGTYPE_LBNORM) {
+      rngstate[j] = rnglbnorm(models[modidx].stateparam[j].data());
+    }
     else if (models[modidx].statetype[j] == RNGTYPE_LIN) {
       rngstate[j] = rnglin(models[modidx].stateparam[j].data(), dist);
     }
@@ -799,6 +802,9 @@ std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist) {
     }
     else if (models[modidx].sticktype[j] == RNGTYPE_BNORM) {
       rngstick[j] = (tick_t)(TICKS_PER_MS * rngbnorm(models[modidx].stickparam[j].data()));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_LBNORM) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rnglbnorm(models[modidx].stickparam[j].data()));
     }
     else if (models[modidx].sticktype[j] == RNGTYPE_LIN) {
       rngstick[j] = (tick_t)(TICKS_PER_MS * rnglin(models[modidx].stickparam[j].data(), dist));

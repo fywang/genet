@@ -36,7 +36,7 @@
 #define GRAPHTYPE_VTX   1
 #define GRAPHTYPE_EDG   2
 
-#define RNGTYPE_NRNG    9
+#define RNGTYPE_NRNG    10
 #define REPTYPE_REAL    0
 #define REPTYPE_TICK    1
 
@@ -45,16 +45,18 @@
 #define RNGTYPE_UNINT   2
 #define RNGTYPE_NORM    3
 #define RNGTYPE_BNORM   4
-#define RNGTYPE_LIN     5
-#define RNGTYPE_LBLIN   6
-#define RNGTYPE_UBLIN   7
-#define RNGTYPE_BLIN    8
+#define RNGTYPE_LBNORM  5
+#define RNGTYPE_LIN     6
+#define RNGTYPE_LBLIN   7
+#define RNGTYPE_UBLIN   8
+#define RNGTYPE_BLIN    9
 
 #define RNGPARAM_CONST  1
 #define RNGPARAM_UNIF   2
 #define RNGPARAM_UNINT  3
 #define RNGPARAM_NORM   2
 #define RNGPARAM_BNORM  3
+#define RNGPARAM_LBNORM  3
 #define RNGPARAM_LIN    2
 #define RNGPARAM_LBLIN  3
 #define RNGPARAM_UBLIN  3
@@ -435,6 +437,13 @@ class GeNet : public CBase_GeNet {
       if (state > bound) { state = bound; }
       else if (state < -bound) { state = -bound; }
       return param[0] + (std::abs(param[1]))*state;
+    }
+    // RNG State lower bounded normal
+    real_t rnglbnorm(real_t *param) {
+      real_t state = (*normdist)(rngine);
+      state = param[0] + (std::abs(param[1]))*state;
+      if (state < param[2]) { state = param[2]; }
+      return state;
     }
     // RNG State linear
     real_t rnglin(real_t *param, real_t dist) {

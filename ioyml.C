@@ -382,6 +382,118 @@ int Main::ReadModel() {
           ++jstate;
         }
       }
+      else if (rngtype == "bounded normal") {
+        if (reptype == "tick") {
+          // Normal distribution
+          models[i].sticktype[jstick] = RNGTYPE_BNORM;
+          models[i].stickparam[jstick].resize(RNGPARAM_BNORM);
+          try {
+            // mean
+            models[i].stickparam[jstick][0] = state[j]["mean"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded normal mean: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // standard deviation
+            models[i].stickparam[jstick][1] = state[j]["std"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded normal std: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // bounds
+            models[i].stickparam[jstick][2] = state[j]["bound"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded normal bound: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
+        }
+        else {
+          // Normal distribution
+          models[i].statetype[jstate] = RNGTYPE_BNORM;
+          models[i].stateparam[jstate].resize(RNGPARAM_BNORM);
+          try {
+            // mean
+            models[i].stateparam[jstate][0] = state[j]["mean"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded normal mean: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // standard deviation
+            models[i].stateparam[jstate][1] = state[j]["std"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded normal std: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // bounds
+            models[i].stateparam[jstate][2] = state[j]["bound"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state bounded normal bound: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
+        }
+      }
+      else if (rngtype == "lower bounded normal") {
+        if (reptype == "tick") {
+          // Normal distribution
+          models[i].sticktype[jstick] = RNGTYPE_LBNORM;
+          models[i].stickparam[jstick].resize(RNGPARAM_LBNORM);
+          try {
+            // mean
+            models[i].stickparam[jstick][0] = state[j]["mean"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state lower bounded normal mean: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // standard deviation
+            models[i].stickparam[jstick][1] = state[j]["std"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state lower bounded normal std: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // bounds
+            models[i].stickparam[jstick][2] = state[j]["bound"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state lower bounded normal bound: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
+        }
+        else {
+          // Normal distribution
+          models[i].statetype[jstate] = RNGTYPE_LBNORM;
+          models[i].stateparam[jstate].resize(RNGPARAM_LBNORM);
+          try {
+            // mean
+            models[i].stateparam[jstate][0] = state[j]["mean"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state lower bounded normal mean: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // standard deviation
+            models[i].stateparam[jstate][1] = state[j]["std"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state lower bounded normal std: %s\n", e.what());
+            return 1;
+          }
+          try {
+            // bounds
+            models[i].stateparam[jstate][2] = state[j]["bound"].as<real_t>();
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state lower bounded normal bound: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
+        }
+      }
       else if (rngtype == "linear") {
         if (reptype == "tick") {
           // Proportional to distance
