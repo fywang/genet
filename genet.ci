@@ -19,9 +19,12 @@ mainmodule genet {
     idx_t sticktype[];
     real_t stateparam[];
     real_t stickparam[];
+    idx_t xdatafiles[];
+    char datafiles[];
     idx_t nmodel;
     idx_t nstateparam;
     idx_t nstickparam;
+    idx_t ndatafiles;
   };
   
   message mGraph {

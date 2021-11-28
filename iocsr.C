@@ -517,3 +517,69 @@ int Main::WriteDist() {
 
   return 0;
 }
+
+/**************************************************************************
+* GeNet (network data files)
+**************************************************************************/
+
+
+// Read data file (csv)
+//
+int GeNet::ReadDataCSV(datafile_t &datafile) {
+  FILE *pData;
+  char csvfile[100];
+  char *line;
+  char *oldstr, *newstr;
+
+  // Prepare buffer
+  line = new char[MAXLINE];
+
+  // Open files for reading
+  // TODO: single-node file reads instead of per-process
+  //       integrate this with MPI-IO?
+  sprintf(csvfile, "%s/%s", netwkdir.c_str(), datafile.filename.c_str());
+  pData = fopen(csvfile,"r");
+  if (pData == NULL || line == NULL) {
+    CkPrintf("Error opening file for reading\n");
+    return 1;
+  }
+
+  // Initialize matrix
+  datafile.matrix.clear();
+
+  // Read csv into matrix
+  for (idx_t i = 0;; ++i) {
+    // read in row
+    while(fgets(line, MAXLINE, pData) && line[0] == '%');
+    if (feof(pData)) { break; }
+    oldstr = line;
+    newstr = NULL;
+    std::unordered_map<idx_t, real_t> row;
+    // read in columns (comma delimited)
+    idx_t j = 0;
+    for (;;) {
+      // check for empty element
+      // element
+      real_t element;
+      element = strtoreal(oldstr, &newstr);
+      oldstr = newstr;
+      // Add element to row
+      row.emplace(j, element);
+      //CkPrintf("  %" PRIidx ", %" PRIidx ": %" PRIreal "\n", i, j, element);
+      // check for next element
+      // TODO: is this robust enough?
+      while (isspace(oldstr[0])) { ++oldstr; }
+      while (oldstr[0] == ',') { ++oldstr; ++j; }
+      // check for end of line (added by fgets)
+      if (oldstr[0] == '\0') { break; }
+    }
+    // Add to matrix
+    datafile.matrix.push_back(row);
+  }
+
+  // Cleanup
+  fclose(pData);
+  delete[] line;
+
+  return 0;
+}

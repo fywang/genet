@@ -113,6 +113,7 @@ void GeNet::Build(mGraph *msg) {
   // Taking into account the different parts too
   // Initial distribution is simply contructing
   // vertices as evenly as possible across the parts
+  // TODO: implement a mode to distribute vertices in chunks by population
   nordervtx.resize(nprt);
   xordervtx.resize(nprt);
   for (idx_t k = 0; k < nprt; ++k) {
@@ -208,6 +209,9 @@ void GeNet::Build(mGraph *msg) {
           xyz[jvtxidx*3+1] = vertices[i].coord[1] + r*y;
           xyz[jvtxidx*3+2] = vertices[i].coord[2] + r*z;
         }
+        else if (vertices[i].shape == VTXSHAPE_SPHERE) {
+          // uniformly inside rectangle
+        }
         // Increment for the next vertex
         ++jvtxidx;
       }
@@ -250,6 +254,9 @@ void GeNet::Build(mGraph *msg) {
       else if (models[modidx].statetype[s] == RNGTYPE_BNORM) {
         rngstate[s] = rngbnorm(models[modidx].stateparam[s].data());
       }
+      else if (models[modidx].statetype[s] == RNGTYPE_FILE) {
+        rngstate[s] = rngfile(models[modidx].stateparam[s].data(), vtxordidx[i], 0);
+      }
       else {
         CkPrintf("  error: statetype %s is not valid for vertex\n", rngtype[models[modidx].statetype[s]].c_str());
         // TODO: cleaner error checking here?
@@ -272,6 +279,9 @@ void GeNet::Build(mGraph *msg) {
       }
       else if (models[modidx].sticktype[s] == RNGTYPE_BNORM) {
         rngstick[s] = (tick_t)(TICKS_PER_MS * rngbnorm(models[modidx].stickparam[s].data()));
+      }
+      else if (models[modidx].sticktype[s] == RNGTYPE_FILE) {
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngfile(models[modidx].stickparam[s].data(), vtxordidx[i], 0));
       }
       else {
         CkPrintf("  error: statetype %s is not valid for vertex\n", rngtype[models[modidx].sticktype[s]].c_str());
@@ -300,6 +310,7 @@ void GeNet::Build(mGraph *msg) {
   edgmodidxconn.clear();
   edgmodidxconn.resize(netfiles);
 
+  // Request data from prev part
   if (cpdat < datidx) {
     thisProxy(cpdat).ConnRequest(datidx);
   }
@@ -359,8 +370,8 @@ void GeNet::Connect(mConn *msg) {
               real_t distance = sqrt((xyz[i*3]-msg->xyz[j*3])*(xyz[i*3]-msg->xyz[j*3])+
                                 (xyz[i*3+1]-msg->xyz[j*3+1])*(xyz[i*3+1]-msg->xyz[j*3+1])+
                                 (xyz[i*3+2]-msg->xyz[j*3+2])*(xyz[i*3+2]-msg->xyz[j*3+2]));              
-              state[i].push_back(BuildEdgState(modidx, distance));
-              stick[i].push_back(BuildEdgStick(modidx, distance));
+              state[i].push_back(BuildEdgState(modidx, distance, msg->vtxordidx[j], vtxordidx[i]));
+              stick[i].push_back(BuildEdgStick(modidx, distance, msg->vtxordidx[j], vtxordidx[i]));
             }
             else {
               // build empty state
@@ -402,8 +413,8 @@ void GeNet::Connect(mConn *msg) {
                                   (xyz[i*3+1]-xyz[j*3+1])*(xyz[i*3+1]-xyz[j*3+1])+
                                   (xyz[i*3+2]-xyz[j*3+2])*(xyz[i*3+2]-xyz[j*3+2]));
                   // build state from j to i
-                  state[i].push_back(BuildEdgState(modidx, distance));
-                  stick[i].push_back(BuildEdgStick(modidx, distance));
+                  state[i].push_back(BuildEdgState(modidx, distance, vtxordidx[j], vtxordidx[i]));
+                  stick[i].push_back(BuildEdgStick(modidx, distance, vtxordidx[j], vtxordidx[i]));
                 }
                 else {
                   // build empty state
@@ -446,8 +457,8 @@ void GeNet::Connect(mConn *msg) {
             edgmodidx[i].push_back(modidx);
             if (modidx) {
               // build state from j to i
-              state[i].push_back(BuildEdgState(modidx, distance));
-              stick[i].push_back(BuildEdgStick(modidx, distance));
+              state[i].push_back(BuildEdgState(modidx, distance, vtxordidx[j], vtxordidx[i]));
+              stick[i].push_back(BuildEdgStick(modidx, distance, vtxordidx[j], vtxordidx[i]));
             }
             else {
               // build empty state
@@ -494,8 +505,8 @@ void GeNet::Connect(mConn *msg) {
           edgmodidx[i].push_back(modidx);
           if (modidx) {
             // build state from j to i
-            state[i].push_back(BuildEdgState(modidx, distance));
-            stick[i].push_back(BuildEdgStick(modidx, distance));
+            state[i].push_back(BuildEdgState(modidx, distance, msg->vtxordidx[j], vtxordidx[i]));
+            stick[i].push_back(BuildEdgStick(modidx, distance, msg->vtxordidx[j], vtxordidx[i]));
           }
           else {
             // build empty state
@@ -585,8 +596,8 @@ mConn* GeNet::BuildPrevConn(idx_t reqidx) {
 
   // Initialize connection message
   int msgSize[MSG_Conn];
-  msgSize[0] = 0;           // vtxmodidx
-  msgSize[1] = 0;           // vtxordidx
+  msgSize[0] = norderdat;   // vtxmodidx
+  msgSize[1] = norderdat;   // vtxordidx
   msgSize[2] = norderdat*3; // xyz
   msgSize[3] = norderdat+1; // xadj
   msgSize[4] = nsizedat;    // adjcy
@@ -603,6 +614,8 @@ mConn* GeNet::BuildPrevConn(idx_t reqidx) {
   
   // Build message
   for (idx_t i = 0; i < norderdat; ++i) {
+    mconn->vtxmodidx[i] = vtxmodidx[i];
+    mconn->vtxordidx[i] = vtxordidx[i];
     // xyz
     mconn->xyz[i*3+0] = xyz[i*3+0];
     mconn->xyz[i*3+1] = xyz[i*3+1];
@@ -648,7 +661,7 @@ mConn* GeNet::BuildNextConn() {
   msgSize[0] = norderdat;   // vtxmodidx
   msgSize[1] = norderdat;   // vtxordidx
   msgSize[2] = norderdat*3; // xyz
-  msgSize[3] = 0;           // xadj
+  msgSize[3] = 0;           // xadj (we don't know these yet)
   msgSize[4] = 0;           // adjcy
   msgSize[5] = 0;           // edgmodidx
   mConn *mconn = new(msgSize, 0) mConn;
@@ -698,6 +711,22 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, idx_t sourceidx, idx_t t
             else if (edges[i].conntype[k] == CONNTYPE_IDX) {
               mask += (((sourceidx * edges[i].maskparam[k][2]) + edges[i].maskparam[k][3]) == targetidx);
             }
+            else if (edges[i].conntype[k] == CONNTYPE_FILE) {
+              // Check to see if it's in the file list
+              // set mask to 1 if there is a non-zero entry
+              // TODO: make sure file-based connections completely override
+              //       other connection types (or make them mutually exclusive)
+              if (sourceidx >= datafiles[(idx_t) (edges[i].probparam[k][0])].matrix.size()) {
+                CkPrintf("  error: datafile %s does not have row for %" PRIidx "\n",
+                         datafiles[(idx_t) (edges[i].probparam[k][0])].filename.c_str(), sourceidx);
+              } else if (datafiles[(idx_t) (edges[i].probparam[k][0])].matrix[sourceidx].find(targetidx) ==
+                         datafiles[(idx_t) (edges[i].probparam[k][0])].matrix[sourceidx].end()) {
+                prob = 0.0;
+                mask = 0;
+              } else {
+                mask = 1;
+              }
+            }
             else {
               // Shouldn't reach here due to prior error checking
               CkPrintf("  error: connection type %" PRIidx " undefined\n", edges[i].conntype[k]);
@@ -727,7 +756,7 @@ idx_t GeNet::MakeConnection(idx_t source, idx_t target, idx_t sourceidx, idx_t t
 
 // States
 //
-std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
+std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist, idx_t sourceidx, idx_t targetidx) {
   // Sanity check
   // 0 is reserved for 'none' edge type
   CkAssert(modidx > 0);
@@ -765,6 +794,9 @@ std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
     else if (models[modidx].statetype[j] == RNGTYPE_BLIN) {
       rngstate[j] = rngblin(models[modidx].stateparam[j].data(), dist);
     }
+    else if (models[modidx].statetype[j] == RNGTYPE_FILE) {
+      rngstate[j] = rngfile(models[modidx].stateparam[j].data(), sourceidx, targetidx);
+    }
     else {
       CkPrintf("  error: statetype %s is not valid for edge\n", rngtype[models[modidx].statetype[j]].c_str());
       // TODO: cleaner error checking here?
@@ -777,7 +809,7 @@ std::vector<real_t> GeNet::BuildEdgState(idx_t modidx, real_t dist) {
 
 // Sticks
 //
-std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist) {
+std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist, idx_t sourceidx, idx_t targetidx) {
   // Sanity check
   // 0 is reserved for 'none' edge type
   CkAssert(modidx > 0);
@@ -814,6 +846,9 @@ std::vector<tick_t> GeNet::BuildEdgStick(idx_t modidx, real_t dist) {
     }
     else if (models[modidx].sticktype[j] == RNGTYPE_BLIN) {
       rngstick[j] = (tick_t)(TICKS_PER_MS * rngblin(models[modidx].stickparam[j].data(), dist));
+    }
+    else if (models[modidx].sticktype[j] == RNGTYPE_FILE) {
+      rngstick[j] = (tick_t)(TICKS_PER_MS * rngfile(models[modidx].stickparam[j].data(), sourceidx, targetidx));
     }
     else {
       CkPrintf("  error: statetype %s is not valid for edge\n", rngtype[models[modidx].sticktype[j]].c_str());

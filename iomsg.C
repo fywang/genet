@@ -28,6 +28,7 @@ mModel* Main::BuildModel() {
   idx_t nsticktype;
   idx_t nstickparam;
   idx_t jstickparam;
+  idx_t ndatafile;
 
   // Get total size of param
   nmodname = 0;
@@ -46,6 +47,10 @@ mModel* Main::BuildModel() {
       nstickparam += models[i].stickparam[j].size();
     }
   }
+  ndatafile = 0;
+  for (std::size_t i = 0; i < datafiles.size(); ++i) {
+    ndatafile += datafiles[i].size();
+  }
 
   // Initialize model message
   int msgSize[MSG_Model];
@@ -58,16 +63,20 @@ mModel* Main::BuildModel() {
   msgSize[6] = nsticktype;        // sticktype
   msgSize[7] = nstateparam;       // stateparam
   msgSize[8] = nstickparam;       // stickparam
+  msgSize[9] = datafiles.size()+1;  // xdatafiles
+  msgSize[10] = ndatafile;          // datafiles
   mModel *mmodel = new(msgSize, 0) mModel;
   // Sizes
   mmodel->nmodel = models.size();
   mmodel->nstateparam = nstateparam;
   mmodel->nstickparam = nstickparam;
+  mmodel->ndatafiles = datafiles.size();
 
   // Prefixes starts with zero
   mmodel->xmodname[0] = 0;
   mmodel->xstatetype[0] = 0;
   mmodel->xsticktype[0] = 0;
+  mmodel->xdatafiles[0] = 0;
 
   // Set up counters
   jstateparam = 0;
@@ -104,6 +113,16 @@ mModel* Main::BuildModel() {
   }
   CkAssert(jstateparam == nstateparam);
   CkAssert(jstickparam == nstickparam);
+
+  // Data files
+  for (std::size_t i = 0; i < datafiles.size(); ++i) {
+    // xdatafiles
+    mmodel->xdatafiles[i+1] = mmodel->xdatafiles[i] + datafiles[i].size();
+    for (std::size_t j = 0; j < datafiles[i].size(); ++j) {
+      // datafiles
+      mmodel->datafiles[mmodel->xdatafiles[i] + j] = datafiles[i][j];
+    }
+  }
 
   // Return model
   return mmodel;

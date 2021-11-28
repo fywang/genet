@@ -109,6 +109,10 @@ Main::Main(CkArgMsg* msg) {
       CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
                i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
     }
+    // TODO: concatenate these onto one line
+    for (std::size_t i = 0; i < datafiles.size(); ++i) {
+      CkPrintf("  Datafiles: %" PRIidx "   Filename: %s\n", i, datafiles[i].c_str());
+    }
 
     // Set up control flags
     buildflag = true;
@@ -294,6 +298,7 @@ GeNet::GeNet(mModel *msg) {
   rngtype[RNGTYPE_LBLIN] = std::string("lower bounded linear");
   rngtype[RNGTYPE_UBLIN] = std::string("upper bounded linear");
   rngtype[RNGTYPE_BLIN] = std::string("bounded linear");
+  rngtype[RNGTYPE_FILE] = std::string("file");
 
   // Set up counters
   idx_t jstateparam = 0;
@@ -344,6 +349,9 @@ GeNet::GeNet(mModel *msg) {
         case RNGTYPE_BLIN:
           models[i].stateparam[j].resize(RNGPARAM_BLIN);
           break;
+        case RNGTYPE_FILE:
+          models[i].stateparam[j].resize(RNGPARAM_FILE);
+          break;
         default:
           CkPrintf("Error: unknown statetype\n");
           break;
@@ -383,6 +391,9 @@ GeNet::GeNet(mModel *msg) {
         case RNGTYPE_BLIN:
           models[i].stickparam[j].resize(RNGPARAM_BLIN);
           break;
+        case RNGTYPE_FILE:
+          models[i].stickparam[j].resize(RNGPARAM_FILE);
+          break;
         default:
           CkPrintf("Error: unknown statetype\n");
           break;
@@ -395,6 +406,18 @@ GeNet::GeNet(mModel *msg) {
   // Sanity check
   CkAssert(jstateparam == msg->nstateparam);
   CkAssert(jstickparam == msg->nstickparam);
+
+  // Read in data files
+  datafiles.resize(msg->ndatafiles);
+  for (std::size_t i = 0; i < datafiles.size(); ++i) {
+    // filename
+    datafiles[i].filename = std::string(msg->datafiles + msg->xdatafiles[i], msg->datafiles + msg->xdatafiles[i+1]);
+    // read in data (as matrix)
+    if (ReadDataCSV(datafiles[i])) {
+      CkPrintf("Error reading data file %s...\n", datafiles[i].filename.c_str());
+      CkExit();
+    }
+  }
 
   // cleanup
   delete msg;

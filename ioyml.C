@@ -99,6 +99,7 @@ int Main::ParseConfig(std::string configfile) {
 **************************************************************************/
 
 // Parse model file (multiple yaml docs in one file)
+// TODO: make it possible to read from multiple files
 //
 int Main::ReadModel() {
   // Load model file
@@ -113,6 +114,8 @@ int Main::ReadModel() {
 
   // Setup model data
   models.resize(modfile.size());
+  // Data file names
+  datafiles.clear();
   // Model map
   modmap.clear();
   modmap[std::string("none")] = 0;
@@ -610,6 +613,40 @@ int Main::ReadModel() {
           ++jstate;
         }
       }
+      else if (rngtype == "file") {
+        if (reptype == "tick") {
+          // From file
+          models[i].sticktype[jstick] = RNGTYPE_FILE;
+          models[i].stickparam[jstick].resize(RNGPARAM_FILE);
+          try {
+            // filename
+            // Add this filename to a list, and set the
+            // model parameter to the filename's index in that list
+            // TODO: check that the filename isn't already on the list
+            //       (e.g. using the same matrix for connections as weights)
+            models[i].stickparam[jstick][0] = (real_t) datafiles.size();
+            datafiles.push_back(state[j]["filename"].as<std::string>());
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state file name: %s\n", e.what());
+            return 1;
+          }
+          ++jstick;
+        }
+        else {
+          // From file
+          models[i].statetype[jstate] = RNGTYPE_FILE;
+          models[i].stateparam[jstate].resize(RNGPARAM_FILE);
+          try {
+            // filename
+            models[i].stateparam[jstate][0] = (real_t) datafiles.size();
+            datafiles.push_back(state[j]["filename"].as<std::string>());
+          } catch (YAML::RepresentationException& e) {
+            CkPrintf("  state file name: %s\n", e.what());
+            return 1;
+          }
+          ++jstate;
+        }
+      }
       else {
         CkPrintf("  error: '%s' unknown state type\n", rngtype.c_str());
         return 1;
@@ -741,6 +778,24 @@ int Main::ReadGraph() {
         vertices[jvtx].param[0] = vertex[i]["radius"].as<real_t>();
       } catch (YAML::RepresentationException& e) {
         CkPrintf("  vertex circle radius: %s\n", e.what());
+        return 1;
+      }
+    }
+    else if (name == "rectangle") {
+      vertices[jvtx].shape = VTXSHAPE_RECT;
+      vertices[jvtx].param.resize(VTXPARAM_RECT);
+      try {
+        // width
+        vertices[jvtx].param[0] = vertex[i]["width"].as<real_t>();
+      } catch (YAML::RepresentationException& e) {
+        CkPrintf("  vertex rectangle width: %s\n", e.what());
+        return 1;
+      }
+      try {
+        // height
+        vertices[jvtx].param[1] = vertex[i]["height"].as<real_t>();
+      } catch (YAML::RepresentationException& e) {
+        CkPrintf("  vertex rectangle height: %s\n", e.what());
         return 1;
       }
     }
@@ -924,6 +979,34 @@ int Main::ReadGraph() {
           edges[i].maskparam[j][3] = conn[j]["srcoff"].as<idx_t>();
         } catch (YAML::RepresentationException& e) {
           CkPrintf("  connect index srcoff: %s\n", e.what());
+          return 1;
+        }
+      }
+      else if (conntype == "file") {
+        // Connect by whatever is in a datafile
+        edges[i].conntype[j] = CONNTYPE_FILE;
+        edges[i].probparam[j].resize(PROBPARAM_FILE);
+        edges[i].maskparam[j].resize(MASKPARAM_FILE);
+        // By file requires single source and target
+        if (edges[i].target.size() > 1) {
+          CkPrintf("  connect file is single target only\n");
+          return 1;
+        }
+        // source and target order
+        for (std::size_t v = 0; v < vertices.size(); ++v) {
+          if (edges[i].source == vertices[v].modidx) {
+            edges[i].maskparam[j][0] = vertices[v].order;
+          }
+          if (edges[i].target[0] == vertices[v].modidx) {
+            edges[i].maskparam[j][1] = vertices[v].order;
+          }
+        }
+        try {
+          // file name
+          edges[i].probparam[j][0] = (real_t) datafiles.size();
+          datafiles.push_back(conn[j]["filename"].as<std::string>());
+        } catch (YAML::RepresentationException& e) {
+          CkPrintf("  connect file name: %s\n", e.what());
           return 1;
         }
       }

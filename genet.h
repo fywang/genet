@@ -36,10 +36,11 @@
 #define GRAPHTYPE_VTX   1
 #define GRAPHTYPE_EDG   2
 
-#define RNGTYPE_NRNG    10
+#define RNGTYPE_NRNG    11
 #define REPTYPE_REAL    0
 #define REPTYPE_TICK    1
 
+// TODO: reorder these numbers sometime
 #define RNGTYPE_CONST   0
 #define RNGTYPE_UNIF    1
 #define RNGTYPE_UNINT   2
@@ -50,25 +51,29 @@
 #define RNGTYPE_LBLIN   7
 #define RNGTYPE_UBLIN   8
 #define RNGTYPE_BLIN    9
+#define RNGTYPE_FILE    10
 
 #define RNGPARAM_CONST  1
 #define RNGPARAM_UNIF   2
 #define RNGPARAM_UNINT  3
 #define RNGPARAM_NORM   2
 #define RNGPARAM_BNORM  3
-#define RNGPARAM_LBNORM  3
+#define RNGPARAM_LBNORM 3
 #define RNGPARAM_LIN    2
 #define RNGPARAM_LBLIN  3
 #define RNGPARAM_UBLIN  3
 #define RNGPARAM_BLIN   4
+#define RNGPARAM_FILE   1
 
 #define VTXSHAPE_POINT  0
 #define VTXSHAPE_CIRCLE 1
 #define VTXSHAPE_SPHERE 2
+#define VTXSHAPE_RECT   3
 
 #define VTXPARAM_POINT  0
 #define VTXPARAM_CIRCLE 1
 #define VTXPARAM_SPHERE 1
+#define VTXPARAM_RECT   2
 
 #define CONNTYPE_UNIF   0
 #define PROBPARAM_UNIF  1
@@ -81,6 +86,10 @@
 #define CONNTYPE_IDX    2
 #define PROBPARAM_IDX   0
 #define MASKPARAM_IDX   4
+
+#define CONNTYPE_FILE   3
+#define PROBPARAM_FILE  1
+#define MASKPARAM_FILE  2
 
 #define EVENT_SPIKE     0
 
@@ -96,7 +105,7 @@ CkReductionMsg *netDist(int nMsg, CkReductionMsg **msgs);
 
 // Model Information
 //
-#define MSG_Model 9
+#define MSG_Model 11
 class mModel : public CMessage_mModel {
   public:
     idx_t *type;        // type of model (vertex/edge)
@@ -108,9 +117,12 @@ class mModel : public CMessage_mModel {
     idx_t *sticktype;     // stick representation type
     real_t *stateparam;   // state generation parameters
     real_t *stickparam;   // stick generation parameters
+    idx_t *xdatafiles;  // prefix sum for filenames
+    char *datafiles;    // filenames (concatenated)
     idx_t nmodel;
     idx_t nstateparam;
     idx_t nstickparam;
+    idx_t ndatafiles;
 };
 
 #define MSG_Graph 17
@@ -235,6 +247,14 @@ struct edge_t {
   std::vector<std::vector<idx_t>> maskparam;
 };
 
+// Data files
+//
+struct datafile_t {
+  std::string filename;
+  // Sparse matrix (can also be used as a vector)
+  std::vector<std::unordered_map<idx_t, real_t>> matrix;
+};
+
 // Size Distributions
 //
 struct dist_t {
@@ -322,6 +342,7 @@ class Main : public CBase_Main {
     /* Models */
     std::vector<model_t> models;
     std::unordered_map<std::string, idx_t> modmap; // maps model name to object index
+    std::vector<std::string> datafiles;
     /* Graph information */
     std::vector<vertex_t> vertices;
     std::vector<edge_t> edges;
@@ -356,7 +377,10 @@ class GeNet : public CBase_GeNet {
     /* Build Network */
     void Build(mGraph *msg);
     void Connect(mConn *msg);
+
     void ConnRequest(idx_t reqidx);
+    /* Reading Datafiles */
+    int ReadDataCSV(datafile_t &datafile);
 
     /* Partition Network */
     void SetPartition();
@@ -377,8 +401,8 @@ class GeNet : public CBase_GeNet {
     mConn* BuildCurrConn();
     mConn* BuildNextConn();
     idx_t MakeConnection(idx_t source, idx_t target, idx_t sourceidx, idx_t targetidx, real_t dist);
-    std::vector<real_t> BuildEdgState(idx_t modidx, real_t dist);
-    std::vector<tick_t> BuildEdgStick(idx_t modidx, real_t dist);
+    std::vector<real_t> BuildEdgState(idx_t modidx, real_t dist, idx_t sourceidx, idx_t targetidx);
+    std::vector<tick_t> BuildEdgStick(idx_t modidx, real_t dist, idx_t sourceidx, idx_t targetidx);
 
     /* Helper Functions */
     idx_t strtomodidx(const char* nptr, char** endptr) {
@@ -468,6 +492,21 @@ class GeNet : public CBase_GeNet {
       }
       return state;
     }
+    // From datafile
+    // (currently conforms to numpy savetxt format for csv)
+    real_t rngfile(real_t *param, idx_t sourceidx, idx_t targetidx) {
+      real_t state = 0.0;
+      if (sourceidx >= datafiles[(idx_t) (param[0])].matrix.size() ||
+          datafiles[(idx_t) (param[0])].matrix[sourceidx].find(targetidx) ==
+          datafiles[(idx_t) (param[0])].matrix[sourceidx].end()) {
+        // TODO: Throw an error if element doesn't exist
+        CkPrintf("  error: datafile %s does not have element for %" PRIidx ", %" PRIidx "\n",
+                 datafiles[(idx_t) (param[0])].filename.c_str(), sourceidx, targetidx);
+      } else {
+        state = datafiles[(idx_t) (param[0])].matrix[sourceidx][targetidx];
+      }
+      return state;
+    }
 
   private:
     /* Network Data */
@@ -486,6 +525,7 @@ class GeNet : public CBase_GeNet {
     std::vector<idx_t> vtxmodidx; // vertex model index into netmodel
     std::vector<idx_t> vtxordidx; // vertex index within model order
     std::vector<std::vector<idx_t>> edgmodidx; // edge model index into netmodel
+    std::vector<datafile_t> datafiles;
     /* Connection information */
     std::vector<std::vector<std::vector<idx_t>>> adjcyconn;
         // first level is the data parts, second level are per vertex, third level is edges
