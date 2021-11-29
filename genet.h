@@ -494,16 +494,17 @@ class GeNet : public CBase_GeNet {
     }
     // From datafile
     // (currently conforms to numpy savetxt format for csv)
+    // Dimensions are stored: targetdim x sourcedim
     real_t rngfile(real_t *param, idx_t sourceidx, idx_t targetidx) {
       real_t state = 0.0;
-      if (sourceidx >= datafiles[(idx_t) (param[0])].matrix.size() ||
-          datafiles[(idx_t) (param[0])].matrix[sourceidx].find(targetidx) ==
-          datafiles[(idx_t) (param[0])].matrix[sourceidx].end()) {
+      if (targetidx >= datafiles[(idx_t) (param[0])].matrix.size() ||
+          datafiles[(idx_t) (param[0])].matrix[targetidx].find(sourceidx) ==
+          datafiles[(idx_t) (param[0])].matrix[targetidx].end()) {
         // TODO: Throw an error if element doesn't exist
-        CkPrintf("  error: datafile %s does not have element for %" PRIidx ", %" PRIidx "\n",
+        CkPrintf("  error: datafile %s does not have element %" PRIidx ", %" PRIidx "\n",
                  datafiles[(idx_t) (param[0])].filename.c_str(), sourceidx, targetidx);
       } else {
-        state = datafiles[(idx_t) (param[0])].matrix[sourceidx][targetidx];
+        state = datafiles[(idx_t) (param[0])].matrix[targetidx][sourceidx];
       }
       return state;
     }

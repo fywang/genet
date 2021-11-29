@@ -548,7 +548,11 @@ int GeNet::ReadDataCSV(datafile_t &datafile) {
   datafile.matrix.clear();
 
   // Read csv into matrix
-  for (idx_t i = 0;; ++i) {
+  // Dimensions are stored: targetdim x sourcedim
+  // TODO: transpose the input file when reading?
+  //       storage in csr-target-major order makes a
+  //       single-threaded read-distribute more practical
+  for (idx_t j = 0;; ++j) {
     // read in row
     while(fgets(line, MAXLINE, pData) && line[0] == '%');
     if (feof(pData)) { break; }
@@ -556,7 +560,7 @@ int GeNet::ReadDataCSV(datafile_t &datafile) {
     newstr = NULL;
     std::unordered_map<idx_t, real_t> row;
     // read in columns (comma delimited)
-    idx_t j = 0;
+    idx_t i = 0;
     for (;;) {
       // check for empty element
       // element
@@ -564,12 +568,12 @@ int GeNet::ReadDataCSV(datafile_t &datafile) {
       element = strtoreal(oldstr, &newstr);
       oldstr = newstr;
       // Add element to row
-      row.emplace(j, element);
+      row.emplace(i, element);
       //CkPrintf("  %" PRIidx ", %" PRIidx ": %" PRIreal "\n", i, j, element);
       // check for next element
       // TODO: is this robust enough?
       while (isspace(oldstr[0])) { ++oldstr; }
-      while (oldstr[0] == ',') { ++oldstr; ++j; }
+      while (oldstr[0] == ',') { ++oldstr; ++i; }
       // check for end of line (added by fgets)
       if (oldstr[0] == '\0') { break; }
     }

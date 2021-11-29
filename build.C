@@ -255,7 +255,7 @@ void GeNet::Build(mGraph *msg) {
         rngstate[s] = rngbnorm(models[modidx].stateparam[s].data());
       }
       else if (models[modidx].statetype[s] == RNGTYPE_FILE) {
-        rngstate[s] = rngfile(models[modidx].stateparam[s].data(), vtxordidx[i], 0);
+        rngstate[s] = rngfile(models[modidx].stateparam[s].data(), 0, vtxordidx[i]);
       }
       else {
         CkPrintf("  error: statetype %s is not valid for vertex\n", rngtype[models[modidx].statetype[s]].c_str());
@@ -281,7 +281,7 @@ void GeNet::Build(mGraph *msg) {
         rngstick[s] = (tick_t)(TICKS_PER_MS * rngbnorm(models[modidx].stickparam[s].data()));
       }
       else if (models[modidx].sticktype[s] == RNGTYPE_FILE) {
-        rngstick[s] = (tick_t)(TICKS_PER_MS * rngfile(models[modidx].stickparam[s].data(), vtxordidx[i], 0));
+        rngstick[s] = (tick_t)(TICKS_PER_MS * rngfile(models[modidx].stickparam[s].data(), 0, vtxordidx[i]));
       }
       else {
         CkPrintf("  error: statetype %s is not valid for vertex\n", rngtype[models[modidx].sticktype[s]].c_str());
