@@ -104,14 +104,16 @@ Main::Main(CkArgMsg* msg) {
   }
 
   if (initok) {
-    // Print out model information
-    for (std::size_t i = 0; i < models.size(); ++i) {
-      CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
-               i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
-    }
-    // TODO: concatenate these onto one line
-    for (std::size_t i = 0; i < datafiles.size(); ++i) {
-      CkPrintf("  Datafiles: %" PRIidx "   Filename: %s\n", i, datafiles[i].c_str());
+    if (mode != "part") {
+      // Print out model information
+      for (std::size_t i = 0; i < models.size(); ++i) {
+        CkPrintf("  Model: %" PRIidx "   ModName: %s   Type: %s   States: %d   Sticks: %d\n",
+                 i+1, models[i].modname.c_str(), graphtype[models[i].type].c_str(), models[i].statetype.size(), models[i].sticktype.size());
+      }
+      // TODO: concatenate these onto one line
+      for (std::size_t i = 0; i < datafiles.size(); ++i) {
+        CkPrintf("  Datafiles: %" PRIidx "   Filename: %s\n", i, datafiles[i].c_str());
+      }
     }
 
     // Set up control flags

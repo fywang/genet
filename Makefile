@@ -51,5 +51,5 @@ clean:
 # OS related
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-  LIB += -stdlib=libc++ -mmacosx-version-min=10.7
+  LIB += -stdlib=libc++ -mmacosx-version-min=13.0
 endif

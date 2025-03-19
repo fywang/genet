@@ -147,6 +147,10 @@ int Main::ReadModel() {
     else if (type == "edge") {
       models[i].type = GRAPHTYPE_EDG;
     }
+    else if (type == "record") {
+      // don't add records to models
+      continue;
+    }
     else {
       CkPrintf("  type: '%s' unknown type\n", type.c_str());
       return 1;
@@ -159,6 +163,11 @@ int Main::ReadModel() {
     } catch (YAML::RepresentationException& e) {
       CkPrintf("  modname: %s\n", e.what());
       return 1;
+    }
+
+    // Don't read state information if just partitioning
+    if (mode == "part") {
+      continue;
     }
 
     // States are their own 'node'
@@ -200,7 +209,7 @@ int Main::ReadModel() {
       std::string reptype;
       try {
         // rngtype
-        rngtype = state[j]["type"].as<std::string>();
+        rngtype = state[j]["init"].as<std::string>();
       } catch (YAML::RepresentationException& e) {
         CkPrintf("  state type: %s\n", e.what());
         return 1;
